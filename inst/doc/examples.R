@@ -243,7 +243,7 @@ model.ssvs.eer<-bgvar(Data=eerDataspf,
 ## ---- "us.spf.sign.spec"------------------------------------------------------
  sign.constr.eer<-list()
  sign.constr.eer$shock1$shock<-"US.y" # Positive AD Shock, gdp goes up,
- sign.constr.eer$shock1$restrictions$res1<-"US.Dp" #  inflation up and interest rates as well
+ sign.constr.eer$shock1$restrictions$res1<-"US.Dp" #inflation up and interest rates as well
  sign.constr.eer$shock1$sign<-c(">",">")
  sign.constr.eer$shock1$rest.horz<-c(1,1)
  sign.constr.eer$shock1$constr<-c(1,1)# no cross-country restrictions, set constr. to 1
@@ -327,6 +327,7 @@ EA_countries <- c("AT", "BE", "DE","ES", "FI","FR")
 monthlyData <- monthlyData[c(EA_countries,"EB")]
 W<-W[EA_countries,EA_countries]
 W<-apply(W,2,function(x)x/rowSums(W))
+OE.weights$EB$weights <- OE.weights$EB$weights[names(OE.weights$EB$weights)%in%EA_countries]
 
 ## ----"ea.estimate"------------------------------------------------------------
 # estimates the model
