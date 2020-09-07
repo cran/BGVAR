@@ -1,15 +1,19 @@
 # BGVAR: Bayesian Global Vector Autoregressions
 
 <!-- badges: start -->
+[![CRAN](http://www.r-pkg.org/badges/version/BGVAR)](https://cran.r-project.org/package=BGVAR)
+[![month](http://cranlogs.r-pkg.org/badges/BGVAR)](https://www.r-pkg.org/pkg/BGVAR)
+[![total](http://cranlogs.r-pkg.org/badges/grand-total/BGVAR)](https://www.r-pkg.org/pkg/BGVAR)
 <!-- badges: end -->
 
 Estimation of Bayesian Global Vector Autoregressions with different prior setups and the possibility to introduce stochastic volatility. Built-in priors include the SIMS, SSVS and NG prior. Post-processing functions allow for doing predictions, structurally identify the model with short-run or sign-restrictions and compute impulse response function, historical decompositions and forecast error variance decompositions. Plotting functions are also available.
 
 ## Installation
 
-You can install the latest development version of BGVAR with:
+BGVAR is available on [CRAN](https://CRAN.R-project.org/package=BGVAR). The latest development version can be installed from GitHub.
 
 ``` r
+install.packages("BGVAR")
 devtools::install_github("mboeck11/BGVAR")
 ```
 
@@ -19,9 +23,9 @@ Note that Mac OS needs gfortran binary packages to be installed. See also: https
 
 The core function of the package is `bgvar()` to estimate Bayesian Global Vector Autoregressions with different shrinkage prior setups. Calls can be heavily customized with respect to the specification details of the model, the MCMC chain, hyperparameter setup and various extra features. The output of the estimation can then be used for a variety of tools implemented for the **BGVAR** package.
 
-Predictions are invoked with `predict()`, impulse responses are computed with `IRF()`, forecast error variance decompositions can be called with `fevd.decomp` and historical decompositions with `hd.decomp()`. Furthermore, counterfactual impulse responses are computed with `IRF.cf()` and conditional forecasts with `cond.pred()`. 
+Predictions are invoked with `predict()`, impulse responses are computed with `irf()`, forecast error variance decompositions can be called with `fevd()` and historical decompositions with `hd()`. Furthermore, counterfactual impulse responses are computed with `irfcf()` and conditional forecasts with `cond.predict()`. 
 
-The package comes with standard methods to ease the analysis. The estimation output can be inspected with `print()`, `summary()`, `fitted()`, `coef()`, `vcov()` and `residuals()`. Default `plot()` is available for most outputs. Various other helper functions to ease analysis are also available.
+The package comes with standard methods to ease the analysis. The estimation output can be inspected with `print()`, `summary()`, `fitted()`, `coef()`, `vcov()` and `residuals()`. Default `plot()` is available for most outputs. All classes features `print()` methods. Various other helper functions to ease analysis are also available.
 
 ## References
 

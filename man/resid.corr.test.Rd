@@ -36,7 +36,7 @@ It is the F-test of the familiar Lagrange Multiplier (LM) statistic (see Godfrey
 \donttest{
 library(BGVAR)
 data(eerData)
-model.mn <- bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="MN")
+model.mn <- bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="MN")
 residual.corr.test(model.mn)
 }
 }
@@ -44,9 +44,6 @@ residual.corr.test(model.mn)
 Godfrey, L.G. (1978a) \emph{Testing Against General Autoregressive and Moving Average Error Models When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1293-1302.
 Godfrey, L.G. (1978b) \emph{Testing for Higher Order Serial Correlation in Regression Equations When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1303-1310.
 Smith, L. V. and A. Galesi (2014) \emph{GVAR Toolbox 2.0 User Guide}, available at \url{https://sites.google.com/site/gvarmodelling/gvar-toolbox}.
-}
-\seealso{
-\code{\link{print.bgvar}}
 }
 \author{
 Martin Feldkircher

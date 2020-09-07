@@ -4,10 +4,10 @@
 \alias{avg.pair.cc}
 \title{Average pairwise cross-sectional correlations}
 \usage{
-avg.pair.cc(obj, digits=3)
+avg.pair.cc(object, digits=3)
 }
 \arguments{
-\item{obj}{Either an object of class \code{bgvar} or residuals of class \code{bgvar.res}.}
+\item{object}{Either an object of class \code{bgvar} or residuals of class \code{bgvar.res}.}
 
 \item{digits}{Number of digits that should be used to print output to the console.}
 }
@@ -31,7 +31,7 @@ If used for analyzing the country models' residuals, \code{avg.pair.cc} computes
 library(BGVAR)
 data(eerData)
 model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
-                  saves=100,burns=100,prior="MN")
+                  draws=100,burnin=100,prior="MN")
 avg.pair.cc(model.mn)
 
 res <- residuals(model.mn)

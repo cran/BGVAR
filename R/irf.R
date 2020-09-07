@@ -1,10 +1,16 @@
-#' @name IRF
+#' @export
+"irf" <- function(x, n.ahead=24, shock=NULL, sign.constr=NULL, save.store=FALSE, applyfun=NULL, cores=NULL, verbose=TRUE){
+  UseMethod("irf", x)
+}
+
+#' @name irf
 #' @title Impulse Response Functions
 #' @description This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in Pesaran and Shin (1998), orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
-#' @usage IRF(obj, nhor=24, shock=NULL, sign.constr=NULL, save.store=FALSE, multithread=FALSE, 
-#'            verbose=TRUE)
-#' @param obj an object of class \code{bgvar}.
-#' @param nhor forecasting horizon.
+#' @export
+#' @usage irf(x, n.ahead=24, shock=NULL, sign.constr=NULL, save.store=FALSE, 
+#'            applyfun=NULL, cores=NULL, verbose=TRUE)
+#' @param x an object of class \code{bgvar}.
+#' @param n.ahead forecasting horizon.
 #' @param shock This is a list object. It should contain an entry labeled \code{var} that contains the name of the variable to be shocked. Also it should contain a list entry labeled \code{cN} that contains a character (or character vector) of the country (countries) in which the variable should be shocked. Finally it has to contain an entry labeled \code{ident} that is either \code{chol} if the shock is based on a short-run identification scheme done with the Cholesky decomposition or \code{girf} if generalized impulse responses should be calculated. In case impulses should be normalized (e.g., a +100bp increase in the interest rate), add another entry \code{scal} that contains a numeric value of the desired impact normalization.
 #' @param sign.constr the user should submit a list containing the following entries \itemize{
 #' \item{\code{shock1}}{ is a list object that defines sign restrictions for a particular shock. \itemize{
@@ -17,10 +23,11 @@
 #' #' \item{\code{MaxTries}}{ Optional numeric corresponding to the maximum tries to search for a rotation matrix that fulfills the user-specified restrictions. Default is set to 7500. After \code{MaxTries} unsuccessful tries the algorithm sets the impulse response for that specific posterior draw to \code{NA}.}
 #' \item{\code{shock2}}{ define a second list with the same arguments as \code{shock1} to identify a second shock. Can be used iteratively to identify multiple shocks.}}}
 #' @param save.store If set to \code{TRUE} the full posterior is returned. Default is set to \code{FALSE} in order to save storage.
-#' @param multithread If set to \code{TRUE} parallel computing using the packages \code{\link{foreach}} and \code{\link{doParallel}}. Number of cores is set to maximum number of cores in the computer. This option is recommended when working with sign restrictions to speed up computations. Default is set to \code{FALSE} and thus no parallelization.
+#' @param applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.
+#' @param cores Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @return Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
-#' \item{\code{posterior}}{ is a four-dimensional array (K times nhor times nr. of shocks times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
+#' \item{\code{posterior}}{ is a four-dimensional array (K times n.ahead times nr. of shocks times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
 #' \item{\code{rot.nr}}{ in case identification is based on sign restrictions (i.e., \code{ident="sign"}), this provides the number of rotation matrices found for the number of posterior draws (save*save_thin).}
 #' \item{\code{shock}}{ in case identification is based on Cholesky decomposition (i.e. \code{ident="chol"}), this gives back the details of the identification specification.}
 #' \item{\code{sign.constr}}{ in case identification is based on sign restrictions (i.e. \code{ident="sign"}), this gives back the set of sign restrictions specified by the user.}
@@ -35,10 +42,9 @@
 #' \item{\code{xglobal}}{ used data of the model.}
 #' \item{\code{plag}}{ used lag specification of the model.}
 #' }}
-#' \item{\code{IRF_store}}{ is a four-dimensional array (K times nhor times nr. of shock times saves) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
+#' \item{\code{IRF_store}}{ is a four-dimensional array (K times n.ahead times nr. of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
-#' @export 
 #' @references 
 #' Arias, J.E., Rubio-Ramirez, J.F, and D.F. Waggoner (2018) \emph{Inference Based on SVARs Identified with Sign and Zero Restrictions: Theory and Applications.} Econometrica Vol. 86(2), pp. 685-720.
 #' 
@@ -52,10 +58,10 @@
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
+#' irf.chol.us.mp<-irf(x=model.ssvs.eer,shock=shocks,n.ahead=24)
 #' 
 #' sign.constr<-list()
 #' sign.constr$shock1$shock<-c("US.stir") 
@@ -66,30 +72,30 @@
 #' sign.constr$shock1$constr<-c(1,1,1)
 #' sign.constr$shock1$scal=+100 
 #' sign.constr$MaxTries<-200
-#' irf.sign.us.mp<-IRF(obj=model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+#' irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
 #' }
 #' \donttest{
 #' oldpar <- par(no.readonly =TRUE)
 #' # First example, a US monetary policy shock, quarterly data
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
+#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #' # plots an impulse response function
 #' plot(irf.chol.us.mp,resp="US")
 #' 
 #' # calculates generalized impulse response functions for the same shock as above
 #' shocks$ident="girf"
-#' irf.girf.ssvs<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
+#' irf.girf.ssvs<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #' plot(irf.girf.ssvs,resp="US.y")
 #' # Shock to first ordered variable yields same responses of Cholesky and GIRF
 #' shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal<--100
-#' irf.chol<-IRF(model.ssvs.eer,shock=shocks,nhor=24)
+#' irf.chol<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #' shocks$ident<-"girf"
-#' irf.girf<-IRF(model.ssvs.eer,shock=shocks,nhor=24)
+#' irf.girf<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #' matplot(cbind(irf.chol$posterior["US.y",,1,"median"],
 #'               irf.girf$posterior["US.y",,1,"median"]),
 #'         type="l",ylab="")
@@ -118,13 +124,13 @@
 #' # a minus 100 bp shock to long-term interest rates (on average)
 #' sign.constr$shock1$scal=+100 
 #' sign.constr$MaxTries<-200
-#' irf.sign.us.mp<-IRF(obj=model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+#' irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
 #' plot(irf.sign.us.mp,resp=c("US"))
 #' 
 #' # second example, cross-country restrictions, multiple shocks and ECB country model
 #' data(monthlyData);monthlyData$OC<-NULL
 #' OE.weights <- list(EB=EA.weights)
-#' model.ssvs<-bgvar(Data=monthlyData,W=W,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs<-bgvar(Data=monthlyData,W=W,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                   thin=1,eigen=TRUE,OE.weights=OE.weights)
 #' EA_countries <- c("AT", "BE", "DE","ES", "FI","FR", "IE", "IT", "NL", "PT","GR","SK")
 #' # A simultaneous Cholesky shock to long-term interest rates in the euro area countries, 
@@ -132,7 +138,7 @@
 #' # Note that the ordering of the variables influences the response, the ordering is exactly as 
 #' # in the country models, to use a different order you have re-estimate the model (by bgvar)
 #' shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-#' irf.chol.ssvs<-IRF(obj=model.ssvs,shock=shocks,nhor=48)
+#' irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=48)
 #' plot(irf.chol.ssvs,resp=c("AT"))
 #' # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
 #' sign.constr<-list()
@@ -155,7 +161,7 @@
 #' # a minus 100 bp shock to long-term interest rates (on average)
 #' sign.constr$shock1$scal=-100 
 #' sign.constr$MaxTries<-200
-#' irf.sign.ssvs<-IRF(obj=model.ssvs,nhor=48,sign.constr=sign.constr)
+#' irf.sign.ssvs<-irf(model.ssvs,n.ahead=48,sign.constr=sign.constr)
 #' plot(irf.sign.ssvs,resp=c("AT"))
 #'  
 #' # Same example but using a local (German) shock and cross-country restrictions.
@@ -163,7 +169,7 @@
 #' # the ordering is exactly as in the country models, to use a different order you have re-estimate
 #' # the model (by bgvar)
 #' shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-#' irf.chol.ssvs<-IRF(obj=model.ssvs,shock=shocks,nhor=24)
+#' irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
 #'  
 #' # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
 #' sign.constr<-list()
@@ -186,12 +192,12 @@
 #' # a minus 100 bp shock to long-term interest rates (on average)
 #' sign.constr$shock1$scal=-100
 #' sign.constr$MaxTries<-200
-#' irf.sign.ssvs<-IRF(obj=model.ssvs,nhor=24,sign.constr=sign.constr)
+#' irf.sign.ssvs<-irf(model.ssvs,n.ahead=24,sign.constr=sign.constr)
 #'  
 #' # Example with zero restriction (Arias et al., 2018) and 
 #' # rationality conditions (D'Amico and King, 2017).
 #' data("eerDataspf")
-#' model.ssvs.eer<-bgvar(Data=eerDataspf,W=W.trade0012.spf,saves=300,burns=300,
+#' model.ssvs.eer<-bgvar(Data=eerDataspf,W=W.trade0012.spf,draws=300,burnin=300,
 #'                       plag=1,prior="SSVS",thin=1,eigen=TRUE)
 #' sign.constr<-list()
 #' sign.constr$shock1$shock<-"US.stir_t+4"
@@ -212,7 +218,7 @@
 #' sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
 #' sign.constr$shock1$scal=0.1
 #' sign.constr$MaxTries<-100
-#' irf.sign<-IRF(obj=model.ssvs.eer,nhor=20,sign.constr=sign.constr)
+#' irf.sign<-irf(model.ssvs.eer,n.ahead=20,sign.constr=sign.constr)
 #' par(mfrow=c(4,1),mar=c(5.1,4.1,4.1,2.1))
 #' # rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
 #' # US.stir between horizon 1 and 4
@@ -239,27 +245,24 @@
 #' par(oldpar)
 #' }
 #' @importFrom abind adrop
-#' @importFrom doParallel registerDoParallel
-#' @importFrom foreach foreach %dopar%
-#' @importFrom parallel detectCores
-IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multithread=FALSE,verbose=TRUE){
+#' @importFrom parallel parLapply mclapply
+irf.bgvar <- function(x,n.ahead=24,shock=NULL,sign.constr=NULL,save.store=FALSE,applyfun=NULL,cores=NULL,verbose=TRUE){
   start.irf <- Sys.time()
-  if(!inherits(obj, "bgvar")) {stop("Please provide a `bgvar` object.")}
   if(verbose) cat("\nStart computing impulse response functions of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
-  plag        <- obj$args$plag
-  xglobal     <- obj$xglobal
+  plag        <- x$args$plag
+  xglobal     <- x$xglobal
   Traw        <- nrow(xglobal)
   bigK        <- ncol(xglobal)
   bigT        <- Traw-plag
-  A_large     <- obj$stacked.results$A_large
-  F_large     <- obj$stacked.results$F_large
-  S_large     <- obj$stacked.results$S_large
-  Ginv_large  <- obj$stacked.results$Ginv_large
-  F.eigen     <- obj$stacked.results$F.eigen
-  thinsaves   <- length(F.eigen) ### prior: saves
+  A_large     <- x$stacked.results$A_large
+  F_large     <- x$stacked.results$F_large
+  S_large     <- x$stacked.results$S_large
+  Ginv_large  <- x$stacked.results$Ginv_large
+  F.eigen     <- x$stacked.results$F.eigen
+  thindraws   <- length(F.eigen) ### prior: draws
   Global      <- FALSE
-  x           <- xglobal[(plag+1):Traw,,drop=FALSE]
+  xdat        <- xglobal[(plag+1):Traw,,drop=FALSE]
   #------------------------------ user checks  ---------------------------------------------------#
   # checks general
   if(is.null(shock)&&is.null(sign.constr)){
@@ -328,10 +331,10 @@ IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multith
     res_len<-unlist(lapply(sign.constr, function(l){
       if(is.list(l$restrictions)){return(length(l$restrictions))}else{return(0)}
     }))
-    cc   <- lapply(ss,function(x)strsplit(x,".",fixed=TRUE))
+    cc       <- lapply(ss,function(x)strsplit(x,".",fixed=TRUE))
     varNames <- colnames(xglobal)
-    vars <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
-    cN   <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
+    vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
+    cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
     cc.list <- list()
     for(ii in 1:length(cc)){
       temp <- c()
@@ -546,59 +549,53 @@ IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multith
   }
   
   # initialize objects to save IRFs, HDs, etc.
-  R_store       <- array(NA, dim=c(thinsaves,bigK,bigK))
-  IRF_store     <- array(NA, dim=c(thinsaves,bigK,nhor+1,shock.nr));dimnames(IRF_store)[[2]] <- colnames(xglobal)
-  imp_posterior <- array(NA, dim=c(bigK,nhor+1,shock.nr,7))
+  R_store       <- array(NA, dim=c(thindraws,bigK,bigK))
+  IRF_store     <- array(NA, dim=c(thindraws,bigK,n.ahead+1,shock.nr));dimnames(IRF_store)[[2]] <- colnames(xglobal)
+  imp_posterior <- array(NA, dim=c(bigK,n.ahead+1,shock.nr,7))
   dimnames(imp_posterior)[[1]] <- colnames(xglobal)
-  dimnames(imp_posterior)[[2]] <- 1:(nhor+1)
+  dimnames(imp_posterior)[[2]] <- 1:(n.ahead+1)
   dimnames(imp_posterior)[[3]] <- paste("shock",1:shock.nr,sep="_")
   dimnames(imp_posterior)[[4]] <- c("low25","low16","low05","median","high75","high84","high95")
+  #------------------------------ prepare applyfun --------------------------------------------------------#
+  if(is.null(applyfun)) {
+    applyfun <- if(is.null(cores)) {
+      lapply
+    } else {
+      if(.Platform$OS.type == "windows") {
+        cl_cores <- parallel::makeCluster(cores)
+        on.exit(parallel::stopCluster(cl_cores))
+        function(X, FUN, ...) parallel::parLapply(cl = cl_cores, X, FUN, ...)
+      } else {
+        function(X, FUN, ...) parallel::mclapply(X, FUN, ..., mc.cores = 
+                                                   cores)
+      }
+    }
+  }
+  if(is.null(cores)) {cores <- 1}
   #------------------------------ start computing irfs  ---------------------------------------------------#
   start.comp <- Sys.time()
-  if(multithread){
-    numCores <- detectCores()
-    registerDoParallel(cores=numCores)
-    if(verbose) cat(paste("Start impulse response analysis on ", numCores, " cores", " (",thinsaves," stable draws in total).",sep=""),"\n")
-    imp.obj <-foreach(irep=1:thinsaves) %dopar% {
-      Ginv <- Ginv_large[irep,,]
-      Fmat <- adrop(F_large[irep,,,,drop=FALSE],drop=1)
-      Smat <- S_large[irep,,]
-      imp.obj    <- irf(x=x,plag=plag,nhor=nhor,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shock=shock,sign.constr=sign.constr,Global=Global,
-                        MaxTries=MaxTries,shock.nr=shock.nr)
-      if(verbose){
-        if(!is.null(sign.constr)){
-          if(!any(is.null(imp.obj$rot))){
-            cat("\n",as.character(Sys.time()), "MCMC draw", irep, ": rotation found after ",imp.obj$icounter," tries", "\n")
-          }else{
-            cat("\n",as.character(Sys.time()), "MCMC draw", irep, ": no rotation found", "\n")
-          }
+  if(verbose) cat(paste("Start impulse response analysis on ", cores, " cores", " (",thindraws," stable draws in total).",sep=""),"\n")
+  imp.obj <- applyfun(1:thindraws,function(irep){
+    Ginv <- Ginv_large[irep,,]
+    Fmat <- adrop(F_large[irep,,,,drop=FALSE],drop=1)
+    Smat <- S_large[irep,,]
+    imp.obj    <- irf(x=xdat,plag=plag,nhor=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shock=shock,sign.constr=sign.constr,Global=Global,
+                      MaxTries=MaxTries,shock.nr=shock.nr)
+    if(verbose){
+      if(!is.null(sign.constr)){
+        if(!any(is.null(imp.obj$rot))){
+          cat("\n",as.character(Sys.time()), "MCMC draw", irep, ": rotation found after ",imp.obj$icounter," tries", "\n")
+        }else{
+          cat("\n",as.character(Sys.time()), "MCMC draw", irep, ": no rotation found", "\n")
         }
       }
-      return(list(impl=imp.obj$impl,rot=imp.obj$rot))
     }
-    for(irep in 1:thinsaves){
-      R_store[irep,,]    <- ifelse(is.null(imp.obj[[irep]]$rot),NA,imp.obj[[irep]]$rot)
-      IRF_store[irep,,,] <- imp.obj[[irep]]$impl
-    }
-  }else{
-    if(verbose) cat(paste("Start impulse response analysis on single core", " (",thinsaves," stable draws in total).",sep=""),"\n")
-    for(irep in 1:thinsaves){
-      Ginv <- Ginv_large[irep,,]
-      Fmat <- adrop(F_large[irep,,,,drop=FALSE],drop=1)
-      Smat <- S_large[irep,,]
-      imp.obj    <- irf(x=x,plag=plag,nhor=nhor,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shock=shock,sign.constr=sign.constr,Global=Global,
-                        MaxTries=MaxTries,shock.nr=shock.nr)
-      if(verbose){
-        if(!is.null(sign.constr)){
-          if(!any(is.na(imp.obj$rot))){
-            cat("\n",as.character(Sys.time()), "MCMC draw", irep, ": rotation found after ",imp.obj$icounter," tries", "\n")
-          }else{
-            cat("\n",as.character(Sys.time()), "MCMC draw", irep, ": no rotation found", "\n")
-          }
-        }
-      }
-      R_store[irep,,]    <- ifelse(is.null(imp.obj$rot),NA,imp.obj$rot)
-      IRF_store[irep,,,] <- imp.obj$impl
+    return(list(impl=imp.obj$impl,rot=imp.obj$rot))
+  })
+  for(irep in 1:thindraws){
+    IRF_store[irep,,,] <- imp.obj[[irep]]$impl
+    if(ident=="sign"){
+      R_store[irep,,] <- imp.obj[[irep]]$rot
     }
   }
   end.comp <- Sys.time()
@@ -609,34 +606,34 @@ IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multith
   # re-set IRF object in case we have found only a few rotation matrices
   if(ident=="sign"){
     idx<-which(!is.na(apply(IRF_store,1,sum)))
-    rot.nr<-paste("For ", length(idx), " draws out of ", thinsaves, " draws, a rotation matrix has been found.")
+    rot.nr<-paste("For ", length(idx), " draws out of ", thindraws, " draws, a rotation matrix has been found.")
     if(length(idx)==0){
       stop("No rotation matrix found with imposed sign restrictions. Please respecify.")
     }
-    print(rot.nr)
+    if(verbose) cat(rot.nr)
     # subset posterior draws
     IRF_store <- IRF_store[idx,,,,drop=FALSE]
     Ginv_large<-Ginv_large[idx,,,drop=FALSE]
     A_large   <- A_large[idx,,,drop=FALSE]
     S_large   <- S_large[idx,,,drop=FALSE]
     R_store   <- R_store[idx,,,drop=FALSE]
-    thinsaves <- length(idx)
+    thindraws <- length(idx)
   }
   # Normalization
-  if(thinsaves>0){
+  if(thindraws>0){
     if(!is.null(scal)){
       # do this for each identified shock (if sign restrictions, there might be more than one shock identified)
       if(Global){
         for(z in 1:shock.nr){
           Mean<-colMeans(IRF_store[,ss[[z]],1,z]) #in case we have multiple country shocks, scale as average on impact
-          for(irep in 1:thinsaves){
+          for(irep in 1:thindraws){
             IRF_store[irep,,,z]<-(IRF_store[irep,,,z]/Mean[irep])*scal[z]
           }
         }
       }else{ #if no global shock has been carried out, but a local shock
         for(z in 1:shock.nr){
           Mean<-IRF_store[,ss[[z]],1,z]
-          for(irep in 1:thinsaves){
+          for(irep in 1:thindraws){
             IRF_store[irep,,,z]<-(IRF_store[irep,,,z]/Mean[irep])*scal[z]
           }
         }
@@ -661,7 +658,7 @@ IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multith
   Smat    <- apply(S_large,c(2,3),median)
   Sigma_u <- Ginv%*%Smat%*%t(Ginv)
   if(ident=="sign"){
-    imp.obj    <- try(irf(x=x,plag=plag,nhor=nhor,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shock=shock,
+    imp.obj    <- try(irf(x=xdat,plag=plag,nhor=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shock=shock,
                           sign.constr=sign.constr,Global=Global,MaxTries=MaxTries,shock.nr=shock.nr),silent=TRUE)
     if(!is(imp.obj,"try-error")){
       Rmed<-imp.obj$rot
@@ -683,7 +680,7 @@ IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multith
   if(save.store){
     out$IRF_store = IRF_store
   }
-  if(verbose) cat(paste("\nSize of IRF object: ", format(object.size(out),unit="MB")))
+  if(verbose) cat(paste("\nSize of irf object: ", format(object.size(out),unit="MB")))
   end.irf <- Sys.time()
   diff.irf <- difftime(end.irf,start.irf,units="mins")
   mins.irf <- round(diff.irf,0); secs.irf <- round((diff.irf-floor(diff.irf))*60,0)
@@ -691,18 +688,24 @@ IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multith
   return(out)
 }
 
-#' @name IRF.cf
+#' @export
+"irfcf" <- function(x, shockvar, resp, n.ahead=24, save.store=FALSE, verbose=TRUE){
+  UseMethod("irfcf", x)
+}
+
+#' @name irfcf
 #' @title Counterfactual Analysis
 #' @description Function to perform counterfactual analysis. It enables to neutralize the response of a specific variable to a given shock.
-#' @usage IRF.cf(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE)
-#' @param obj an object of class \code{bgvar}.
+#' @export
+#' @usage irfcf(x, shockvar, resp, n.ahead=24, save.store=FALSE, verbose=TRUE)
+#' @param x an object of class \code{bgvar}.
 #' @param shockvar structural shock of interest.
 #' @param resp response variable to neutralize.
-#' @param nhor forecasting horizon.
+#' @param n.ahead forecasting horizon.
 #' @param save.store If set to \code{TRUE} the full posterior is returned. Default is set to \code{FALSE} in order to save storage.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @return Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
-#' \item{\code{posterior}}{ is a four-dimensional array (K times K times nhor times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
+#' \item{\code{posterior}}{ is a four-dimensional array (K times K times n.ahead times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
 #' \item{\code{struc.obj}}{ is a list object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\itemize{
 #' \item{\code{A}}{ median posterior of global coefficient matrix.}
 #' \item{\code{Ginv}}{ median posterior of matrix \code{Ginv}, which describes contemporaneous relationships between countries.}
@@ -712,36 +715,34 @@ IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multith
 #' \item{\code{xglobal}}{ used data of the model.}
 #' \item{\code{plag}}{ used lag specification of the model.}
 #' }}
-#' \item{\code{IRF_store}}{ is a four-dimensional array (K times nhor times nr. of shock times saves) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
+#' \item{\code{IRF_store}}{ is a four-dimensional array (K times n.ahead times nr. of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @examples
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' }
 #' # very time-consuming
 #' \dontrun{
-#' irf.cf <- IRF.cf(model.ssvs.eer,shockvar="US.stir",resp="US.rer",nhor=24)
+#' irfcf <- irfcf(model.ssvs.eer,shockvar="US.stir",resp="US.rer",n.ahead=24)
 #' }
 #' @importFrom stats quantile
-#' @export
-IRF.cf <- function(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE){
+irfcf.bgvar.irf <- function(x, shockvar, resp, n.ahead=24, save.store=FALSE, verbose=TRUE){
   start.irf <- Sys.time()
-  if(!inherits(obj, "bgvar")) {stop("Please provide a `bgvar.irf` object.")}
   if(verbose) cat("\nStart counterfactual analysis of Bayesian Global Vector Autoregression.\n\n")
   #----------------get stuff-------------------------------------------------------#
-  plag        <- obj$args$plag
-  xglobal     <- obj$xglobal
+  plag        <- x$args$plag
+  xglobal     <- x$xglobal
   bigK        <- ncol(xglobal)
-  A_large     <- obj$stacked.results$A_large
-  F_large     <- obj$stacked.results$F_large
-  S_large     <- obj$stacked.results$S_large
-  Ginv_large  <- obj$stacked.results$Ginv_large
-  F.eigen     <- obj$stacked.results$F.eigen
-  thinsaves   <- length(F.eigen)
+  A_large     <- x$stacked.results$A_large
+  F_large     <- x$stacked.results$F_large
+  S_large     <- x$stacked.results$S_large
+  Ginv_large  <- x$stacked.results$Ginv_large
+  F.eigen     <- x$stacked.results$F.eigen
+  thindraws   <- length(F.eigen)
   varNames    <- colnames(xglobal)
   #----------------------checks-----------------------------------------------------#
   if(length(shockvar)!=1&&length(resp)!=1){
@@ -761,31 +762,31 @@ IRF.cf <- function(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE){
   }
   #--------------compute-----------------------------------------------------------#
   if(verbose) cat("Start computing...\n")
-  IRF_store     <- array(NA, dim=c(thinsaves,bigK,bigK,nhor))
+  IRF_store     <- array(NA, dim=c(thindraws,bigK,bigK,n.ahead))
   dimnames(IRF_store)[[2]] <- dimnames(IRF_store)[[3]] <- colnames(xglobal)
-  pb <- txtProgressBar(min = 0, max = thinsaves, style = 3)
-  for(irep in 1:thinsaves){
+  pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
+  for(irep in 1:thindraws){
     Sigma_u <- Ginv_large[irep,,]%*%S_large[irep,,]%*%t(Ginv_large[irep,,])
     irf<-Phi2<- .impulsdtrf(B=adrop(F_large[irep,,,,drop=FALSE],drop=1),
-                           smat=t(chol(Sigma_u)),nstep=nhor)
-    for(h in 1:nhor){
+                           smat=t(chol(Sigma_u)),nstep=n.ahead)
+    for(h in 1:n.ahead){
       aux<-NULL
       e0<-Phi2[neutR,,h]/irf[neutR,neutS,1] # shocks are vectorized, no loop here
       for(i in 1:bigK){ # loop over varibles / responses
-        idx<-c(1:(nhor-h+1))
+        idx<-c(1:(n.ahead-h+1))
         aux<-rbind(aux,matrix(irf[i,neutS,idx],nrow=bigK,ncol=length(idx),byrow=TRUE)*e0)
       }
       dim(aux)<-c(bigK,bigK,length(idx));aux<-aperm(aux,c(2,1,3))
-      Phi2[,,(h:nhor)]<-Phi2[,,(h:nhor),drop=FALSE]-aux
+      Phi2[,,(h:n.ahead)]<-Phi2[,,(h:n.ahead),drop=FALSE]-aux
     }
     IRF_store[irep,,,] <- Phi2
     setTxtProgressBar(pb, irep)
   }
   #---------------------compute posterior----------------------------------------#
-  imp_posterior <- array(NA, dim=c(bigK,bigK,nhor,7))
+  imp_posterior <- array(NA, dim=c(bigK,bigK,n.ahead,7))
   dimnames(imp_posterior)[[1]] <- colnames(xglobal)
   dimnames(imp_posterior)[[2]] <- colnames(xglobal)
-  dimnames(imp_posterior)[[3]] <- 1:nhor
+  dimnames(imp_posterior)[[3]] <- 1:n.ahead
   dimnames(imp_posterior)[[4]] <- c("low25","low16","low05","median","high75","high84","high95")
   imp_posterior[,,,"low25"] <- apply(IRF_store,c(2,3,4),quantile,.25,na.rm=TRUE)
   imp_posterior[,,,"low16"] <- apply(IRF_store,c(2,3,4),quantile,.16,na.rm=TRUE)
@@ -810,7 +811,7 @@ IRF.cf <- function(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE){
   if(save.store){
     out$IRF_store = IRF_store
   }
-  if(verbose) cat(paste("\nSize of IRF object: ", format(object.size(out),unit="MB")))
+  if(verbose) cat(paste("\nSize of irf object: ", format(object.size(out),unit="MB")))
   end.irf <- Sys.time()
   diff.irf <- difftime(end.irf,start.irf,units="mins")
   mins.irf <- round(diff.irf,0); secs.irf <- round((diff.irf-floor(diff.irf))*60,0)
@@ -818,93 +819,30 @@ IRF.cf <- function(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE){
   return(out)
 }
 
-#' @name plot.bgvar.irf
-#' @title Plot predictions of bgvar
-#' @description  Plots the predictions of an object of class \code{bgvar.predict}.
-#' @param x an object of class \code{bgvar.irf}.
-#' @param ... additional arguments.
-#' @param resp specify a variable to plot predictions.
-#' @param shock.nr specify shock to be plotted.
-#' @param cumulative whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.
-#' @return No return value.
-#' @author Maximilian Boeck, Martin Feldkircher
-#' @examples
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' # US monetary policy shock
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
-#' # plots an impulse response function
-#' plot(irf.chol.us.mp,resp="US.y")
-#' }
-#' @seealso \code{\link{IRF}}
-#' @importFrom graphics abline matplot polygon segments
-#' @importFrom stats rnorm
-#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @method print bgvar.irf
 #' @export
-plot.bgvar.irf<-function(x, ...,resp,shock.nr=1,cumulative=FALSE){
-  # restore user par settings on exit
-  oldpar <- par(no.readonly=TRUE)
-  on.exit(par(oldpar))
-  if(!inherits(x, "bgvar.irf")) {stop("Please provide a `bgvar.irf` object.")}
-  if(length(shock.nr)!=1){stop("Please select only one shock.")}
-  posterior <- x$posterior
-  varNames  <- dimnames(posterior)[[1]]
-  varAll    <- varNames
-  cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
-  vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
+print.bgvar.irf <- function(x, ...){
+  cat("---------------------------------------------------------------------------------------")
+  cat("\n")
+  cat("Object contains impulse responses of object estimated with 'bgvar':")
+  cat("\n")
+  cat(paste0("Size of posterior containing impulse responses: ",dim(x$posterior)[[1]]," x ",dim(x$posterior)[[2]]," x ",dim(x$posterior)[[3]]," x ",dim(x$posterior)[[4]],"."))
+  cat("\n")
+  cat(paste0("Number of shocks identified: ",dim(x$posterior)[[3]],"."))
+  cat("\n")
+  cat("Identification scheme: ")
+  if(x$ident=="chol"){
+    cat("Short-run restrictions via Cholesky decomposition.")
+  }else if(x$ident=="sign"){
+    cat("Sign-restrictions.")
+  }else if(x$ident=="girf"){
+    cat("Generalized - no identification scheme employed.")
+  }
+  cat("\n")
+  cat(paste0("Size ob object: ",format(object.size(x),unit="MB")))
+  cat("\n")
+  cat("---------------------------------------------------------------------------------------")
   
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar.irf' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar' object.")
-      }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
-    }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc) varAll[grepl(cc,varAll)])
-  }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
-      x<-posterior[idx,,shock.nr,c("low25","median","high75"),drop=TRUE] # first dimension is nr. of variables to be plotted
-      y<-posterior[idx,,shock.nr,c("low16","median","high84"),drop=TRUE] # first dimension is nr. of variables to be plotted
-      if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
-      b <- range(x,y)
-      b1<-b[1];b2<-rev(b)[1]
-      matplot(x,type="l",col=c("black",bgvar.env$plot$col.50,"black"),yaxt="n",xaxt="n",
-              lwd=bgvar.env$plot$lwd.line,ylab="",main=varAll[idx],cex.main=bgvar.env$plot$cex.main,
-              cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,lty=c(0,1,0),ylim=c(b1,b2))
-      polygon(c(1:nrow(y),rev(1:nrow(y))),c(y[,1],rev(y[,3])),col=bgvar.env$plot$col.75,border=NA)
-      polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,1],rev(x[,3])),col=bgvar.env$plot$col.68,border=NA)
-      segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
-      lines(x[,2],col=bgvar.env$plot$col.50,lwd=4)
-      axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
-      axisindex<-seq(1,nrow(x),by=4)
-      axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
-      abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
-    }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
-  }
+  return(invisible(x))
 }
-
  

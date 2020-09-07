@@ -1,16 +1,16 @@
-#' @name predict.bgvar
+#' @name predict
 #' @title Compute predictions
 #' @description A function that computes predictions based on a object of class \code{bgvar}.
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
-#' @param fhorz the forecast horizon.
+#' @param n.ahead the forecast horizon.
 #' @param save.store If set to \code{TRUE} the full distribution is returned. Default is set to \code{FALSE} in order to save storage.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @return Returns an object of class \code{bgvar.pred} with the following elements \itemize{
-#' \item{\code{fcast}}{ is a K times fhorz times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the posterior predictive distribution.}
+#' \item{\code{fcast}}{ is a K times n.ahead times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the posterior predictive distribution.}
 #' \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
-#' \item{\code{fhorz}}{ specified forecast horizon.}
-#' \item{\code{lps.stats}}{ is an array object of dimension K times 2 times fhorz and contains the mean and standard deviation of the log-predictive scores for each variable and each forecast horizon.}
+#' \item{\code{n.ahead}}{ specified forecast horizon.}
+#' \item{\code{lps.stats}}{ is an array object of dimension K times 2 times n.ahead and contains the mean and standard deviation of the log-predictive scores for each variable and each forecast horizon.}
 #' \item{\code{hold.out}}{ if \code{h} is not set to zero, this contains the hold-out sample.}
 #' }
 #' @examples
@@ -20,25 +20,25 @@
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
-#' fcast <- predict(model.ssvs, fhorz=8)
+#' fcast <- predict(model.ssvs, n.ahead=8)
 #' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
-#' fcast <- predict(model.ssvs, fhorz=8)
+#' fcast <- predict(model.ssvs, n.ahead=8)
 #' }
 #' @importFrom stats rnorm tsp sd
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
 #' @export
-predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
+predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE){
   start.pred <- Sys.time()
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
   if(verbose) cat("\nStart computing predictions of Bayesian Global Vector Autoregression.\n\n")
-  saves      <- object$args$thinsaves
+  draws      <- object$args$thindraws
   plag       <- object$args$plag
   xglobal    <- object$xglobal
   x          <- xglobal[(plag+1):nrow(xglobal),]
@@ -65,12 +65,12 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
   Yn <- Yn[(plag+1):Traw,,drop=FALSE]
   if(trend) Xn <- cbind(Xn,seq(1,bigT))
   
-  fcst_t <- array(NA,dim=c(saves,M,fhorz))
+  fcst_t <- array(NA,dim=c(draws,M,n.ahead))
   
   # start loop here
   if(verbose) cat("Start computing...\n")
-  if(verbose) pb <- txtProgressBar(min = 0, max = saves, style = 3)
-  for(irep in 1:saves){
+  if(verbose) pb <- txtProgressBar(min = 0, max = draws, style = 3)
+  for(irep in 1:draws){
     #Step I: Construct a global VC matrix Omega_t
     Ginv    <- Ginv_large[irep,,]
     Sig_t   <- Ginv%*%(S_large[irep,,])%*%t(Ginv)
@@ -87,7 +87,7 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
     Jm    <- aux$Jm
     Jsigt <- Jm%*%Sig_t%*%t(Jm)
     # this is the forecast loop
-    for (ih in 1:fhorz){
+    for (ih in 1:n.ahead){
       z1      <- Mm%*%z1
       Sigma00 <- Mm%*%Sigma00%*%t(Mm) + Jsigt
       chol_varyt <- try(t(chol(Sigma00[1:M,1:M])),silent=TRUE)
@@ -103,9 +103,9 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
     if(verbose) setTxtProgressBar(pb, irep)
   }
   
-  imp_posterior<-array(NA,dim=c(M,fhorz,5))
+  imp_posterior<-array(NA,dim=c(M,n.ahead,5))
   dimnames(imp_posterior)[[1]] <- varNames
-  dimnames(imp_posterior)[[2]] <- 1:fhorz
+  dimnames(imp_posterior)[[2]] <- 1:n.ahead
   dimnames(imp_posterior)[[3]] <- c("low25","low16","median","high75","high84")
   
   imp_posterior[,,"low25"]  <- apply(fcst_t,c(2,3),quantile,0.25,na.rm=TRUE)
@@ -115,7 +115,7 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
   imp_posterior[,,"high84"] <- apply(fcst_t,c(2,3),quantile,0.84,na.rm=TRUE)
   
   h                        <- object$args$h
-  if(h>fhorz) h            <- fhorz
+  if(h>n.ahead) h            <- n.ahead
   yfull                    <- object$args$yfull
   if(h>0){
     lps.stats                <- array(0,dim=c(M,2,h))
@@ -133,7 +133,7 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
   
   out <- structure(list(fcast=imp_posterior,
                         xglobal=xglobal,
-                        fhorz=fhorz,
+                        n.ahead=n.ahead,
                         lps.stats=lps.stats,
                         hold.out=hold.out),
                    class="bgvar.pred")
@@ -148,7 +148,7 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
   return(out)
 }
 
-#' @name cond.pred
+#' @name cond.predict
 #' @title Conditional Forecasts
 #' @description Function that computes conditional forecasts for Bayesian Vector Autoregressions.
 #' @usage cond.predict(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TRUE)
@@ -159,9 +159,9 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
 #' @param constr_sd a matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @return Returns an object of class \code{bgvar.pred} with the following elements \itemize{
-#' \item{\code{fcast}}{ is a K times fhorz times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the conditional posterior predictive distribution.}
+#' \item{\code{fcast}}{ is a K times n.ahead times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the conditional posterior predictive distribution.}
 #' \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
-#' \item{\code{fhorz}}{ specified forecast horizon.}
+#' \item{\code{n.ahead}}{ specified forecast horizon.}
 #' }
 #' @author Maximilian Boeck
 #' @examples
@@ -171,19 +171,19 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' 
 #' # compute predictions
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' 
-#' # set up constraints matrix of dimension fhorz times K
-#' constr <- matrix(NA,nrow=fcast$fhorz,ncol=ncol(model.ssvs.eer$xglobal))
+#' # set up constraints matrix of dimension n.ahead times K
+#' constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
 #' colnames(constr) <- colnames(model.ssvs.eer$xglobal)
 #' constr[1:5,"US.Dp"] <- model.ssvs.eer$xglobal[76,"US.Dp"]
 #' 
 #' # add uncertainty to conditional forecasts
-#' constr_sd <- matrix(NA,nrow=fcast$fhorz,ncol=ncol(model.ssvs.eer$xglobal))
+#' constr_sd <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
 #' colnames(constr_sd) <- colnames(model.ssvs.eer$xglobal)
 #' constr_sd[1:5,"US.Dp"] <- 0.001
 #' 
@@ -192,19 +192,19 @@ predict.bgvar <- function(object, ..., fhorz=8, save.store=FALSE, verbose=TRUE){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' 
 #' # compute predictions
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' 
-#' # set up constraints matrix of dimension fhorz times K
-#' constr <- matrix(NA,nrow=fcast$fhorz,ncol=ncol(model.ssvs.eer$xglobal))
+#' # set up constraints matrix of dimension n.ahead times K
+#' constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
 #' colnames(constr) <- colnames(model.ssvs.eer$xglobal)
 #' constr[1:5,"US.Dp"] <- model.ssvs.eer$xglobal[76,"US.Dp"]
 #' 
 #' # add uncertainty to conditional forecasts
-#' constr_sd <- matrix(NA,nrow=fcast$fhorz,ncol=ncol(model.ssvs.eer$xglobal))
+#' constr_sd <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
 #' colnames(constr_sd) <- colnames(model.ssvs.eer$xglobal)
 #' constr_sd[1:5,"US.Dp"] <- 0.001
 #' 
@@ -234,9 +234,9 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   S_large     <- bgvar.obj$stacked.results$S_large
   Ginv_large  <- bgvar.obj$stacked.results$Ginv_large
   F.eigen     <- bgvar.obj$stacked.results$F.eigen
-  thinsaves   <- length(F.eigen)
+  thindraws   <- length(F.eigen)
   x           <- xglobal[(plag+1):Traw,,drop=FALSE]
-  horizon     <- pred.obj$fhorz
+  horizon     <- pred.obj$n.ahead
   varNames    <- colnames(xglobal)
   cN          <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
   var         <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
@@ -257,12 +257,12 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   }
   pred_array <- pred.obj$pred_store
   #---------------container---------------------------------------------------------#
-  cond_pred <- array(NA, c(thinsaves, bigK, horizon))
+  cond_pred <- array(NA, c(thindraws, bigK, horizon))
   dimnames(cond_pred)[[2]] <- varNames
   #----------do conditional forecasting -------------------------------------------#
   if(verbose) cat("Start computing...\n")
-  if(verbose) pb <- txtProgressBar(min = 0, max = thinsaves, style = 3)
-  for(irep in 1:thinsaves){
+  if(verbose) pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
+  for(irep in 1:thindraws){
     pred    <- pred_array[irep,,]
     Sigma_u <- Ginv_large[irep,,]%*%S_large[irep,,]%*%t(Ginv_large[irep,,])
     irf     <- .impulsdtrf(B=adrop(F_large[irep,,,,drop=FALSE],drop=1),
@@ -319,7 +319,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   #----------------------------------------------------------------------------------#
   out <- structure(list(fcast=imp_posterior,
                         xglobal=xglobal,
-                        fhorz=horizon),
+                        n.ahead=horizon),
                    class="bgvar.pred")
   if(verbose) cat(paste("\n\nSize of object:", format(object.size(out),unit="MB")))
   end.cond <- Sys.time()
@@ -327,104 +327,6 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   mins.cond <- round(diff.cond,0); secs.cond <- round((diff.cond-floor(diff.cond))*60,0)
   if(verbose) cat(paste("\nNeeded time for computation: ",mins.cond," ",ifelse(mins.cond==1,"min","mins")," ",secs.cond, " ",ifelse(secs.cond==1,"second.","seconds.\n"),sep=""))
   return(out)
-}
-
-#' @name plot.bgvar.pred
-#' @title Plot predictions of bgvar
-#' @description  Plots the predictions of an object of class \code{bgvar.predict}.
-#' @param x an object of class \code{bgvar.predict}.
-#' @param ... additional arguments.
-#' @param resp specify a variable to plot predictions.
-#' @param Cut length of series to be plotted before prediction begins.
-#' @return No return value.
-#' @author Maximilian Boeck, Martin Feldkircher
-#' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
-#' plot(fcast, resp="US.Dp", Cut=20)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
-#' plot(fcast, resp="US.Dp", Cut=20)
-#' }
-#' @importFrom graphics abline matplot polygon
-#' @importFrom stats rnorm
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#' @export
-plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
-  # reset user par settings on exit
-  oldpar<- par(no.readonly=TRUE)
-  on.exit(par(oldpar))
-  fcast <- x$fcast
-  Xdata <- x$xglobal
-  hstep <- x$fhorz
-  thin<-nrow(Xdata)-hstep
-  if(thin>Cut){
-    Xdata<-Xdata[(nrow(Xdata)-Cut+1):nrow(Xdata),]
-  }
-  varNames  <- colnames(Xdata)
-  varAll    <- varNames
-  cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
-  vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar.predict' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar.predict' object.")
-      }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
-    }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc) varAll[grepl(cc,varAll)])
-  }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
-      x <- rbind(cbind(NA,Xdata[,idx],NA),fcast[idx,,c("low25","median","high75")])
-      y <- rbind(cbind(NA,Xdata[,idx],NA),fcast[idx,,c("low16","median","high84")])
-      b <- range(x,y, na.rm=TRUE)
-      b1<-b[1];b2<-rev(b)[1]
-      matplot(x,type="l",col=c("black","black","black"),xaxt="n",lwd=4,ylab="",main=varAll[idx],yaxt="n",
-              cex.main=bgvar.env$plot$cex.main,cex.axis=bgvar.env$plot$cex.axis,
-              cex.lab=bgvar.env$plot$cex.lab,lty=c(0,1,0),ylim=c(b1,b2))
-      polygon(c(1:nrow(y),rev(1:nrow(y))),c(y[,1],rev(y[,3])),col=bgvar.env$plot$col.75,border=NA)
-      polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,1],rev(x[,3])),col=bgvar.env$plot$col.68,border=NA)
-      lines(c(rep(NA,Cut),x[seq(Cut+1,Cut+hstep),2]),col=bgvar.env$plot$col.50,lwd=4)
-      
-      axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
-      axisindex <- c(round(seq(1,Cut,length.out=8)),seq(Cut+1,Cut+hstep))
-      axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
-      axis(side=2, cex.axis=0.6)
-      abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
-    }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
-  }
 }
 
 #' @name lps.bgvar.pred
@@ -440,17 +342,17 @@ plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps <- lps(fcast)
 #' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps   <- lps(fcast)
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -486,17 +388,17 @@ lps <- function(object, ...){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse <- rmse(fcast)
 #' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse   <- rmse(fcast)
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -520,40 +422,10 @@ rmse <- function(object, ...){
   return(out)
 }
 
-#' @name print.bgvar.lps
-#' @export
-#' @title Print prediction evaulation
-#' @description \code{print} prints log-predictive scores (LPS) of out-of-sample predictions computed with \code{bgvar.predict}.
 #' @method print bgvar.lps
-#' @param x an object of class \code{bgvar.lps}.
-#' @param ... other arguments.
-#' @return No return value.
-#' @seealso 
-#' \code{\link{bgvar}} to estimate a \code{bgvar} object and \code{\link{predict.bgvar}} to compute predictions.
-#' @author Maximilian Boeck, Martin Feldkircher
-#' @examples 
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
-#' lps(fcast)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
-#' lps(fcast)
-#' }
+#' @export
 #' @importFrom knitr kable
 print.bgvar.lps<-function(x, ...){
-  if(!inherits(x, "bgvar.lps")) {stop("Please provide a `bgvar.lps` object.")}
   h    <- dim(x)[1]
   cN   <- unique(sapply(strsplit(colnames(x),".",fixed=TRUE),function(y)y[1]))
   vars <- unique(sapply(strsplit(colnames(x),".",fixed=TRUE),function(y)y[2]))
@@ -598,59 +470,29 @@ print.bgvar.lps<-function(x, ...){
   }
   mat.h[is.na(mat.h)] <- ""
   colnames(mat.h) <- rep("",10)
-
+  
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Log-predictive scores per country")
-  print(kable(mat.c))
+  cat(kable(mat.c), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Log-predictive scores per variable")
-  print(kable(mat.v))
+  cat(kable(mat.v), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Log-predictive scores per horizon")
-  print(kable(mat.h))
+  cat(kable(mat.h), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
 }
 
-#' @name print.bgvar.rmse
-#' @export
-#' @title Print prediction evaulation
-#' @description \code{print} prints root mean squared errors (RMSE) of out-of-sample predictions computed with \code{bgvar.predict}.
 #' @method print bgvar.rmse
-#' @param x an object of class \code{bgvar.predeval}.
-#' @param ... other arguments.
-#' @return No return value.
-#' @seealso 
-#' \code{\link{bgvar}} to estimate a \code{bgvar} object and \code{\link{predict.bgvar}} to compute predictions.
-#' @author Maximilian Boeck, Martin Feldkircher
-#' @examples 
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
-#' rmse(fcast)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
-#' rmse(fcast)
-#' }
+#' @export
 #' @importFrom knitr kable
 print.bgvar.rmse<-function(x, ...){
-  if(!inherits(x, "bgvar.rmse")) {stop("Please provide a `bgvar.rmse` object.")}
   h    <- dim(x)[1]
   cN   <- unique(sapply(strsplit(colnames(x),".",fixed=TRUE),function(y)y[1]))
   vars <- unique(sapply(strsplit(colnames(x),".",fixed=TRUE),function(y)y[2]))
@@ -699,17 +541,17 @@ print.bgvar.rmse<-function(x, ...){
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Root-mean squared error per country")
-  print(kable(mat.c))
+  cat(kable(mat.c), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Root-mean squared error per variable")
-  print(kable(mat.v))
+  cat(kable(mat.v), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Root-mean squared error per horizon")
-  print(kable(mat.h))
+  cat(kable(mat.h), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
 }

@@ -1,18 +1,25 @@
-#' @name hd.decomp
+#' @export
+"hd" <- function(x, R=NULL, verbose=TRUE){
+  UseMethod("hd", x)
+}
+
+#' @name hd
 #' @title Historical Decomposition
 #' @description A function that calculates historical decomposition (HD) of the time series and the structural error.
-#' @usage hd.decomp(obj, R=NULL, verbose=TRUE)
-#' @param obj an item fitted by \code{IRF}.
+#' @method hd bgvar.irf
+#' @export
+#' @usage hd(x, R=NULL, verbose=TRUE)
+#' @param x an item fitted by \code{IRF}.
 #' @param R If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
-#' @details To save computational time as well as due to storage limits, both functions are based on the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected to calculate both statistics. If not specified otherwise (via \code{R}), the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix tha minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
+#' @details To save computational time as well as due to storage limits, both functions are based on the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected to calculate both statistics. If not specified otherwise (via \code{R}), the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix that minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 #' @return Returns a list with the following objects \itemize{
 #' \item{\code{hd_array}}{ is a three-dimensional array with the first dimension referring to the K time series, the second to the T observations and the third dimensions containing the contribution of the shocks in explaining historically deviations in the time series from their trend. The third dimension is K+3, since the last three entries contain the contributions of the constant, the initial condition and a residual component that the contributions sum up to the original time series. If a trend i specified in the model the third dimension is K+3 with trend ordered after the constant.}
 #' \item{\code{struc.shcok}}{ contains the structural shock.}
 #' \item{\code{x}}{ is a matrix object that contains the original time series, which is of dimension K times (T-plag).}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
-#' @seealso \code{\link{bgvar}} and \code{\link{IRF}}.
+#' @seealso \code{\link{bgvar}} and \code{\link{irf}}.
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
@@ -20,51 +27,49 @@
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
-#' HD <- hd.decomp(irf.chol.us.mp)
+#' irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
+#' HD <- hd(irf.chol.us.mp)
 #' }
 #' \donttest{
 #' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 #' 
-#' HD <- hd.decomp(irf.chol.us.mp)
+#' HD <- hd(irf.chol.us.mp)
 #' # summing them up should get you back the original time series
 #' org.ts<-apply(HD$hd_array,c(1,2),sum)
-#' matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="")
+#' matplot(cbind(HD$xglobal[,1],org.ts[,1]),type="l",ylab="")
 #' legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n")
 #' }
 #' @references 
 #' Fry, R. and A. Pagan (2011) \emph{Sign restrictions in Structural Vector Autoregressions: A Critical Review}. Journal of Economic Literature, Vol. 49(4), pp. 938-960.
-#' @export
-hd.decomp<-function(obj, R=NULL, verbose=TRUE){
+hd.bgvar.irf<-function(x, R=NULL, verbose=TRUE){
   start.hd <- Sys.time()
-  if(!inherits(obj, "bgvar.irf")) {stop("Please provide a `bgvar.irf` object.")}
   if(verbose) cat("\nStart computing historical decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
-  xglobal <- obj$model.obj$xglobal
-  plag    <- obj$model.obj$plag
-  ident   <- obj$ident
+  xglobal <- x$model.obj$xglobal
+  plag    <- x$model.obj$plag
+  ident   <- x$ident
   Traw    <- nrow(xglobal)
   bigK    <- ncol(xglobal)
-  x       <- xglobal[(plag+1):Traw,,drop=FALSE]
-  bigT    <- nrow(x)
-  ALPHA   <- obj$struc.obj$A
-  Ginv    <- obj$struc.obj$Ginv
-  Smat    <- obj$struc.obj$Smat
+  xdat    <- xglobal[(plag+1):Traw,,drop=FALSE]
+  bigT    <- nrow(xdat)
+  ALPHA   <- x$struc.obj$A
+  Ginv    <- x$struc.obj$Ginv
+  Smat    <- x$struc.obj$Smat
   Sigma_u <- Ginv%*%Smat%*%t(Ginv)
   varNames<- colnames(xglobal)
   trend   <- FALSE
   if(!is.null(R)){
-    R<-obj$struc.obj$Rmed
+    R<-x$struc.obj$Rmed
   }else{
     R<-diag(bigK)
   }
@@ -155,14 +160,39 @@ hd.decomp<-function(obj, R=NULL, verbose=TRUE){
   hd_array[,,(bigK+1)] <- HDconst_big
   if(trend) hd_array[,,(bigK+1+trend)] <- HDtrend_big
   hd_array[,,(bigK+2+trend)] <- HDinit_big
-  hd_array[,,(bigK+3+trend)] <- (t(x)-apply(hd_array,c(1,2),sum)) # residual part
+  hd_array[,,(bigK+3+trend)] <- (t(xdat)-apply(hd_array,c(1,2),sum)) # residual part
   #----------------------------------------------------------------------------------#
   hd_array <- aperm(hd_array,c(2,1,3))
-  out      <- structure(list(hd_array=hd_array,struc.shock=vv,x=x), class="bgvar.hd")
+  out      <- structure(list(hd_array=hd_array,struc_shock=vv,xglobal=xdat, R=NULL), class="bgvar.hd")
   if(verbose) cat(paste("Size of object:", format(object.size(out),unit="MB")))
   end.hd <- Sys.time()
   diff.hd <- difftime(end.hd,start.hd,units="mins")
   mins.hd <- round(diff.hd,0); secs.hd <- round((diff.hd-floor(diff.hd))*60,0)
   if(verbose) cat(paste("\nNeeded time for computation: ",mins.hd," ",ifelse(mins.hd==1,"min","mins")," ",secs.hd, " ",ifelse(secs.hd==1,"second.","seconds.\n"),sep=""))
   return(out)
+}
+
+#' @method print bgvar.hd
+#' @export
+print.bgvar.hd <- function(x, ...){
+  cat("---------------------------------------------------------------------------------------")
+  cat("\n")
+  cat("Object contains historical decomposition of object estimated with 'bgvar':")
+  cat("\n")
+  cat(paste0("Size of hd_array containing historical decompositions: ",dim(x$hd_array)[[1]]," x ",dim(x$hd_array)[[2]]," x ",dim(x$hd_array)[[3]],"."))
+  cat("\n")
+  cat(paste0("Size of struc_shock containing structural errors: ",dim(x$struc_shock)[[1]]," x ",dim(x$struc_shock)[[2]],"."))
+  cat("\n")
+  cat("Identification scheme: ")
+  if(is.null(x$R)){
+    cat("Short-run restrictions via Cholesky decomposition.")
+  }else{
+    cat("Sign-restrictions.")
+  }
+  cat("\n")
+  cat(paste0("Size ob object: ",format(object.size(x),unit="MB")))
+  cat("\n")
+  cat("---------------------------------------------------------------------------------------")
+  
+  return(invisible(x))
 }
