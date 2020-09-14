@@ -44,19 +44,19 @@ W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,
 
 ## ----"model.1",results="hide"-------------------------------------------------
  model.1<-bgvar(Data=eerData,
-                    W=W.trade0012,
-                    draws=100,
-                    burnin=100,
-                    plag=1,
-                    prior="NG",
-                    hyperpara=NULL, 
-                    SV=TRUE,
-                    thin=1,
-                    trend=TRUE,
-                    h=0,
-                    save.country.store=FALSE,
-                    eigen=1.05
-                    )
+                W=W.trade0012,
+                draws=100,
+                burnin=100,
+                plag=1,
+                prior="NG",
+                hyperpara=NULL, 
+                SV=TRUE,
+                thin=1,
+                trend=TRUE,
+                h=0,
+                save.country.store=FALSE,
+                eigen=1.05
+                )
 
 
 ## ----"SV",results="hide"------------------------------------------------------
@@ -82,19 +82,19 @@ plot(model.1, global=FALSE, resp="EA")
 
 ## ----"ssvs.1",echo=TRUE, results="hide"---------------------------------------
  model.ssvs.1<-bgvar(Data=eerData,
-                    W=W.trade0012,
-                    draws=100,
-                    burnin=100,
-                    plag=1,
-                    prior="SSVS",
-                    hyperpara=NULL, 
-                    SV=TRUE,
-                    thin=1,
-                    trend=TRUE,
-                    h=0,
-                    save.country.store=FALSE,
-                    eigen=1.05
-                    )
+                     W=W.trade0012,
+                     draws=100,
+                     burnin=100,
+                     plag=1,
+                     prior="SSVS",
+                     hyperpara=NULL, 
+                     SV=TRUE,
+                     thin=1,
+                     trend=TRUE,
+                     h=0,
+                     save.country.store=FALSE,
+                     eigen=1.05
+                     )
 
 
 ## ----"Pips"-------------------------------------------------------------------
@@ -194,7 +194,7 @@ heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4")
 ## ----"us.mp", results="hide"--------------------------------------------------
   # US monetary policy shock
  shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
- irf.chol.us.mp<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24,save.store=TRUE)
+ irf.chol.us.mp<-irf(model.ssvs.1,shock=shocks,n.ahead=24,save.store=TRUE)
 
 ## ---- "us.mp2"----------------------------------------------------------------
 names(irf.chol.us.mp)
@@ -205,10 +205,10 @@ plot(irf.chol.us.mp,resp="US")
 ## ---- "us.gdp", results="hide"------------------------------------------------
 # Recursive US GDP
 shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-1
-irf.chol.us.y<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
+irf.chol.us.y<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
 # GIRF US GDP
 shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="girf";shocks$scal=-1
-irf.girf.us.y<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
+irf.girf.us.y<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
 
 ## ---- "us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%"----
 plot(irf.chol.us.y,resp="US.y")
@@ -219,7 +219,7 @@ plot(irf.girf.us.y,resp="US.rer")
 
 ## ---- "global.gdp",results="hide"---------------------------------------------
 shocks<-list();shocks$var="y";shocks$cN<-c("EA", "US", "RU");shocks$ident="girf";shocks$scal=-1
-irf.chol.ssvs<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
+irf.chol.ssvs<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
 
 ## ---- hide=TRUE---------------------------------------------------------------
 data("eerDataspf")
@@ -229,14 +229,14 @@ W.trade0012.spf<-apply(W.trade0012.spf,2,function(x)x/rowSums(W.trade0012.spf))
 
 ## ---- "us.spf", results="hide"------------------------------------------------
 model.ssvs.eer<-bgvar(Data=eerDataspf,
-                    W=W.trade0012.spf,
-                    plag=1,
-                    draws=100,
-                    burnin=100,
-                    prior="SSVS",
-                    SV=TRUE,
-                    thin=1
-                    )
+                      W=W.trade0012.spf,
+                      plag=1,
+                      draws=100,
+                      burnin=100,
+                      prior="SSVS",
+                      SV=TRUE,
+                      thin=1
+                      )
 
 ## ---- "us.spf.sign.spec"------------------------------------------------------
  sign.constr.eer<-list()
@@ -256,7 +256,7 @@ model.ssvs.eer<-bgvar(Data=eerDataspf,
  sign.constr.eer$MaxTries<-10000 # maximum number of rotations per draw
 
 ## ---- "us.spf.sign",message=FALSE, results="hide"-----------------------------
-irf.sign<-IRF(obj=model.ssvs.eer,n.ahead=24,sign.constr=sign.constr.eer,save.store=TRUE)
+irf.sign<-irf(model.ssvs.eer,n.ahead=24,sign.constr=sign.constr.eer,save.store=TRUE)
 
 ## ---- "us.spf.sign2"----------------------------------------------------------
 irf.sign$rot.nr
@@ -293,7 +293,7 @@ sign.constr$shock1$rest.horz<-c(1,1,1,1,5,5,5)
 sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
 sign.constr$shock1$scal=1
 sign.constr$MaxTries<-200
-irf.sign.zero<-IRF(obj=model.ssvs.eer,n.ahead=20,sign.constr=sign.constr,save.store=TRUE)
+irf.sign.zero<-irf(model.ssvs.eer,n.ahead=20,sign.constr=sign.constr,save.store=TRUE)
 
 ## ---- "eer.spf.plots",fig.cap="Rationality conditions I.",out.width="50%",fig.show="hold"----
 # rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
@@ -365,13 +365,13 @@ sign.constr$shock1$scal=-100
 sign.constr$MaxTries<-200
 
 ## ----"global.restrictions"----------------------------------------------------
-sign.constr$shock1
-sign.constr$restrictions
+sign.constr$shock1$shock
+sign.constr$shock1$restrictions
 
 ## ----"global.shock.irf",echo=TRUE,results="hide"------------------------------
-irf.sign.ssvs<-IRF(obj=model.ssvs,         # gvar object
+irf.sign.ssvs<-irf(model.ssvs,             # gvar object
                    shock=NULL,             # shockc is not needed 
-                   n.ahead=24,                # impulse response horizon
+                   n.ahead=24,             # impulse response horizon
                    sign.constr=sign.constr # list with sign-restrictions
                    )
 
@@ -389,7 +389,7 @@ plot(irf.sign.ssvs,resp="ES.y")
 
 ## ---- "fevd"------------------------------------------------------------------
 #calculates the LN GFEVD 
-gfevd.us.mp=gfevd.decomp(obj=model.ssvs.eer,n.ahead=24,running=TRUE,cires=4)$GFEVD
+gfevd.us.mp=gfevd(model.ssvs.eer,n.ahead=24,running=TRUE,cires=4)$GFEVD
 
 # get position of EA 
 idx<-which(grepl("EA.",dimnames(gfevd.us.mp)[[2]]))
@@ -401,15 +401,15 @@ barplot(t(cbind(own,foreign)),legend.text =c("own","foreign"))
 
 ## ---- "fevd.struc"------------------------------------------------------------
 # calculates FEVD for variables US.y
-fevd.us.y=fevd.decomp(obj=irf.sign,var.slct=c("US.y"))$FEVD
+fevd.us.y=fevd(irf.sign,var.slct=c("US.y"))$FEVD
 idx<-which(grepl("US.",rownames(fevd.us.y)))
 
 
 ## ---- "fevd.struc.plot",fig.cap="FEVD of US GDP.",out.width="50%"-------------
 barplot(fevd.us.y[idx,,])
 
-## ----"hd.decomp"--------------------------------------------------------------
- HD<-hd.decomp(irf.chol.us.mp)
+## ----"hd"---------------------------------------------------------------------
+ HD<-hd(irf.chol.us.mp)
  # summing them up should get you back the original time series
  org.ts<-apply(HD$hd_array,c(1,2),sum) # this sums up the contributions of all shocks + constant, initial conditions and residual component (last three entries in the third dimension of the array)
 
@@ -533,21 +533,21 @@ plot(cond_fcast2, resp="US.Dp", Cut=10)
 #    model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
 #    # US monetary policy shock
 #    shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#    irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,n.ahead=24)
+#    irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #  
 #    # plots an impulse response function
 #    plot(irf.chol.us.mp,resp="US.y")
 #  
 #   # calculates generalized impulse response functions for the same shock as above
 #    shocks$ident="girf"
-#    irf.girf.ssvs<-IRF(obj=model.ssvs.eer,shock=shocks,n.ahead=24)
+#    irf.girf.ssvs<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #    plot(irf.girf.ssvs,resp="US.y")
 #  
 #  # Shock to first ordered variable yields same responses of cholesky and GIRF
 #    shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal=+1
-#    irf.chol<-IRF(model.ssvs.eer,shock=shocks,n.ahead=24)
+#    irf.chol<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #    shocks$ident<-"girf"
-#    irf.girf<-IRF(model.ssvs.eer,shock=shocks,n.ahead=24)
+#    irf.girf<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #    matplot(cbind(irf.chol$posterior["US.y",,1,"median"],irf.girf$posterior["US.y",,1,"median"]),type="l",ylab="")
 #    matplot(cbind(irf.chol$posterior["US.Dp",,1,"median"],irf.girf$posterior["US.Dp",,1,"median"]),type="l",ylab="")
 #    matplot(cbind(irf.chol$posterior["EA.y",,1,"median"],irf.girf$posterior["EA.y",,1,"median"]),type="l",ylab="")
@@ -567,7 +567,7 @@ plot(cond_fcast2, resp="US.Dp", Cut=10)
 #    # Note that the ordering of the variables influences the response, the ordering is exactly as in the country models, to use a different order you have re-estimate
 #    # the model (by bgvar)
 #    shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-#    irf.chol.ssvs<-IRF(model.ssvs,shock=shocks,n.ahead=24)
+#    irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
 #  
 #    # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
 #    sign.constr<-list()
@@ -580,14 +580,14 @@ plot(cond_fcast2, resp="US.Dp", Cut=10)
 #    sign.constr$shock1$constr<-c(1,0.5,0.5) # are constraints binding for all (1) countries specified or for at least 50% of the countries (0.5), or 75% (0.75)
 #    sign.constr$shock1$scal=-100 # a minus 100 bp shock to long-term interest rates (on average)
 #    sign.constr$MaxTries<-200
-#    irf.sign.ssvs<-IRF(obj=model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
+#    irf.sign.ssvs<-irf(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
 #  
 #  
 #   # Same example but using a local (German) shock and cross-country restrictions.
 #    # Note that the ordering of the variables influences the response, the ordering is exactly as in the country models, to use a different order you have re-estimate
 #    # the model (by bgvar)
 #    shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-#    irf.chol.ssvs<-IRF(model.ssvs,shock=shocks,n.ahead=24)
+#    irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
 #  
 #    # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
 #    sign.constr<-list()
@@ -600,7 +600,7 @@ plot(cond_fcast2, resp="US.Dp", Cut=10)
 #    sign.constr$shock1$constr<-c(1,0.5,0.5) # are constraints binding for all (1) countries specified or for at least 50% of the countries (0.5), or 75% (0.75)
 #    sign.constr$shock1$scal=-100 # a minus 100 bp shock to long-term interest rates (on average)
 #    sign.constr$MaxTries<-200
-#    irf.sign.ssvs<-IRF(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
+#    irf.sign.ssvs<-irf(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
 #  
 #   # Example with zero restriction (Arias et al., 2018) and rationality conditions (D'Amico and King, 2017).
 #    data("eerDataspf")
@@ -634,7 +634,7 @@ plot(cond_fcast2, resp="US.Dp", Cut=10)
 #    sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
 #    sign.constr$shock1$scal=1
 #    sign.constr$MaxTries<-200
-#    irf.sign<-IRF(obj=model.ssvs.eer,
+#    irf.sign<-irf(model.ssvs.eer,
 #                  n.ahead=20,
 #                  sign.constr=sign.constr,
 #                  save.store=TRUE)
