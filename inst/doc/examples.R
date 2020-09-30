@@ -389,7 +389,7 @@ plot(irf.sign.ssvs,resp="ES.y")
 
 ## ---- "fevd"------------------------------------------------------------------
 #calculates the LN GFEVD 
-gfevd.us.mp=gfevd(model.ssvs.eer,n.ahead=24,running=TRUE,cires=4)$GFEVD
+gfevd.us.mp=gfevd(model.ssvs.eer,n.ahead=24,running=TRUE,cores=4)$FEVD
 
 # get position of EA 
 idx<-which(grepl("EA.",dimnames(gfevd.us.mp)[[2]]))
