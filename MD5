@@ -1,4 +1,4 @@
-29082d809979f8827a860eb60633beb6 *DESCRIPTION
+a80a154457ce0411d45262666fcba6e0 *DESCRIPTION
 328e1a91bce2a66870b92203afff2b81 *NAMESPACE
 1da7cff489dc47a40341f7556e902527 *NEWS
 ec4a07443139c143cdd3e8819aeec65e *R/RcppExports.R
@@ -22,7 +22,7 @@ e2438e22226cf46a804409aec5d997ae *data/monthlyData.rda
 c3faeb4ec581c68e6894c4c513a12227 *inst/CITATION
 ba96896649ec10e89158df13a66949c4 *inst/doc/examples.R
 889861d76347e3bd88ff295412afadfb *inst/doc/examples.Rmd
-6600f771a385951090216d961fcaed54 *inst/doc/examples.html
+98d53aec1778dc2bee1cf0ba1556d19b *inst/doc/examples.html
 809f7ae79607e2ac882d1f4e35dbe3d5 *man/DIC.Rd
 9fe0c6d720d843737ff98f03280f58cd *man/avg.pair.cc.Rd
 32340a0120b7ef054d233dab06bb5788 *man/bgvar.Rd
