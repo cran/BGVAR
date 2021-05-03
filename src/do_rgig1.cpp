@@ -1,14 +1,18 @@
+#define STRICT_R_HEADERS
+#include <float.h>
 #include <Rcpp.h>
 #include <math.h>
 #include <stdlib.h>
 #include <GIGrvg.h>
 using namespace Rcpp;
 
+//' @name do_rgig
+//' @noRd
 //[[Rcpp::export]]
 double do_rgig1(double lambda, double chi, double psi) {
   
   if (chi == 0){
-    chi = DOUBLE_XMIN;
+    chi = DBL_MIN;
   }
   
   if ( !(R_FINITE(lambda) && R_FINITE(chi) && R_FINITE(psi)) ||
@@ -21,7 +25,7 @@ double do_rgig1(double lambda, double chi, double psi) {
   double res;
   
   // circumvent GIGrvg in these cases
-  if (chi < 11 * DOUBLE_EPS) {
+  if (chi < 11 * DBL_EPSILON) {
     /* special cases which are basically Gamma and Inverse Gamma distribution */
     if (lambda > 0.0) {
       res = R::rgamma(lambda, 2.0/psi);
@@ -31,7 +35,7 @@ double do_rgig1(double lambda, double chi, double psi) {
     }
   }
   
-  else if (psi < 11 * DOUBLE_EPS) {
+  else if (psi < 11 * DBL_EPSILON) {
     /* special cases which are basically Gamma and Inverse Gamma distribution */
     if (lambda > 0.0) {
       res = R::rgamma(lambda, 2.0/psi);  // fixed

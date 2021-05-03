@@ -1,4 +1,3 @@
-// [[Rcpp::depends(RcppArmadillo,stochvol,GIGrvg)]]
 #include <RcppArmadillo.h>
 #include <stochvol.h>
 #include <stdlib.h>
@@ -11,6 +10,7 @@ using namespace arma;
 
 //' @name BVAR_linear
 //' @noRd
+//[[Rcpp::interfaces(r, cpp)]]
 //[[Rcpp::export]]
 List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
                  const SEXP draws_in, const SEXP burnin_in,
@@ -86,8 +86,8 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   // prior == 3: NG
   const double d_lambda = hyperparam["d_lambda"];
   const double e_lambda = hyperparam["e_lambda"];
-  const double a_start = hyperparam["a_start"];
-  const bool sample_A = hyperparam["sample_A"];
+  const double tau_theta = hyperparam["tau_theta"];
+  const bool sample_tau_bool = hyperparam["sample_tau"];
   // misc
   const double a_1 = hyperparam["a_1"];
   const double b_1 = hyperparam["b_1"];
@@ -160,7 +160,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   }
   // NG stuff
   mat lambda2_A(p+1,2,fill::zeros);
-  mat A_tau(p+1,2); A_tau.fill(a_start);
+  mat A_tau(p+1,2); A_tau.fill(tau_theta);
   mat A_tuning(p+1,2); A_tuning.fill(0.43);
   mat A_accept(p+1,2, fill::zeros);
   //---------------------------------------------------------------
@@ -177,7 +177,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   
   // NG
   double lambda2_L = 0.01;
-  double L_tau = a_start;
+  double L_tau = tau_theta;
   double L_tuning = 0.43;
   double L_accept = 0;
   mat lambda2_Lmat(p+1,1, fill::zeros);
@@ -188,11 +188,12 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   // SV quantitites
   //---------------------------------------------------------------
   mat Sv_draw(T,M); Sv_draw.fill(-3);
-  mat Sv_para(M,3);
+  mat Sv_para(4,M);
   for(int mm=0; mm < M; mm++){
-    Sv_para(mm,0) = -10;
-    Sv_para(mm,1) = .9;
-    Sv_para(mm,2) = .2;
+    Sv_para(0,mm) = -10;
+    Sv_para(1,mm) = .9;
+    Sv_para(2,mm) = .2;
+    Sv_para(3,mm) = -10;
   }
   uvec rec(T); rec.fill(5);
   double h0 = -10;
@@ -233,7 +234,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   cube res_store(thindraws,T,M);
   // SV
   cube Sv_store(thindraws,T,M);
-  cube pars_store(thindraws,M,3);
+  cube pars_store(thindraws,4,M);
   // SIMS
   mat shrink_store(thindraws,3, fill::zeros);
   // SSVS
@@ -372,7 +373,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
             sample_theta(V_con, A_con, P_con, lambda2_A(0,1), A_tau(0,1), r, c, false);
             V_prior.rows(p*M, p*M+Mstar-1) = V_con;
             
-            if(sample_A){
+            if(sample_tau_bool){
               vec theta_vec = V_con.as_col(); vec lambda_vec = lambda2_A.submat(0,1,pp,1); double lambda_prod = prod(lambda_vec);
               sample_tau(A_tau(0,1), lambda_prod, theta_vec, A_tuning(0,1), A_accept(0,1), burnin, irep);
             }
@@ -392,7 +393,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
           sample_theta(V_end, A_end, P_end, lambda2_A(pp,0), A_tau(pp,0), r_end, c_end, false);
           V_prior.rows((pp-1)*M, pp*M-1) = V_end;
           
-          if(sample_A){
+          if(sample_tau_bool){
             vec theta_vec_end = V_end.as_col();
             vec lambda_vec_end = lambda2_A.submat(1,0,pp,0); 
             double lambda_prod_end = prod(lambda_vec_end); 
@@ -411,7 +412,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
             sample_theta(V_exo, A_exo, P_exo, lambda2_A(pp,1), A_tau(pp,1), r_exo, c_exo, false);
             V_prior.rows(p*M+pp*Mstar, p*M+(pp+1)*Mstar-1) = V_exo;
             
-            if(sample_A){
+            if(sample_tau_bool){
               vec theta_vec_exo = V_exo.as_col();
               vec lambda_vec_exo = lambda2_A.submat(0,1,pp,1);
               double lambda_prod_exo = prod(lambda_vec_exo);
@@ -425,7 +426,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
       lambda2_L = sample_lambda2(L_prior, L_tau, d_lambda, e_lambda, v, 1);
       sample_theta(L_prior, L_draw, l_prior, lambda2_L, L_tau, r, c, true);
       
-      if(sample_A){
+      if(sample_tau_bool){
         vec theta_vec_l(v); int vv=0;
         for(int i=1; i < r; i++){
           for(int j=0; j < i; j++){
@@ -442,11 +443,12 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
       vec cur_sv  = Sv_draw.unsafe_col(mm);  // changed to **unsafe**_col which reuses memory
       if(sv){
         const vec datastand = log(data_sv%data_sv + offset);
-        double mu = Sv_para(mm, 0);
-        double phi = Sv_para(mm, 1);
-        double sigma = Sv_para(mm, 2);
+        double mu = Sv_para(0, mm);
+        double phi = Sv_para(1, mm);
+        double sigma = Sv_para(2, mm);
+        double h0 = Sv_para(3, mm);
         stochvol::update_fast_sv(datastand, mu, phi, sigma, h0, cur_sv, rec, prior_spec, expert);
-        Sv_para.row(mm) = arma::rowvec({mu, phi, sigma});
+        Sv_para.col(mm) = arma::colvec({mu, phi, sigma});
         //Sv_draw.col(mm) = cur_sv;  // unsafe_col overwrites the original data without copying
       }else{
         sample_sig2(cur_sv, data_sv, a_1, b_1, T);
