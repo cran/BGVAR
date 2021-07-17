@@ -10,31 +10,31 @@
 using namespace Rcpp;
 
 // BVAR_linear
-List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in, const SEXP draws_in, const SEXP burnin_in, const SEXP cons_in, const SEXP trend_in, const SEXP sv_in, const SEXP thin_in, const SEXP prior_in, const SEXP hyperparam_in, const SEXP Ex_in);
-static SEXP _BGVAR_BVAR_linear_try(SEXP Y_inSEXP, SEXP W_inSEXP, SEXP p_inSEXP, SEXP draws_inSEXP, SEXP burnin_inSEXP, SEXP cons_inSEXP, SEXP trend_inSEXP, SEXP sv_inSEXP, SEXP thin_inSEXP, SEXP prior_inSEXP, SEXP hyperparam_inSEXP, SEXP Ex_inSEXP) {
+List BVAR_linear(arma::mat Yraw, arma::mat Wraw, arma::mat Exraw, int plag, int draws, int burnin, int thin, bool cons, bool trend, bool sv, int prior, Rcpp::List hyperparam);
+static SEXP _BGVAR_BVAR_linear_try(SEXP YrawSEXP, SEXP WrawSEXP, SEXP ExrawSEXP, SEXP plagSEXP, SEXP drawsSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP consSEXP, SEXP trendSEXP, SEXP svSEXP, SEXP priorSEXP, SEXP hyperparamSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< const SEXP >::type Y_in(Y_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type W_in(W_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type p_in(p_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type draws_in(draws_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type burnin_in(burnin_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type cons_in(cons_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type trend_in(trend_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type sv_in(sv_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type thin_in(thin_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type prior_in(prior_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type hyperparam_in(hyperparam_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type Ex_in(Ex_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(BVAR_linear(Y_in, W_in, p_in, draws_in, burnin_in, cons_in, trend_in, sv_in, thin_in, prior_in, hyperparam_in, Ex_in));
+    Rcpp::traits::input_parameter< arma::mat >::type Yraw(YrawSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Wraw(WrawSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Exraw(ExrawSEXP);
+    Rcpp::traits::input_parameter< int >::type plag(plagSEXP);
+    Rcpp::traits::input_parameter< int >::type draws(drawsSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
+    Rcpp::traits::input_parameter< bool >::type cons(consSEXP);
+    Rcpp::traits::input_parameter< bool >::type trend(trendSEXP);
+    Rcpp::traits::input_parameter< bool >::type sv(svSEXP);
+    Rcpp::traits::input_parameter< int >::type prior(priorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type hyperparam(hyperparamSEXP);
+    rcpp_result_gen = Rcpp::wrap(BVAR_linear(Yraw, Wraw, Exraw, plag, draws, burnin, thin, cons, trend, sv, prior, hyperparam));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _BGVAR_BVAR_linear(SEXP Y_inSEXP, SEXP W_inSEXP, SEXP p_inSEXP, SEXP draws_inSEXP, SEXP burnin_inSEXP, SEXP cons_inSEXP, SEXP trend_inSEXP, SEXP sv_inSEXP, SEXP thin_inSEXP, SEXP prior_inSEXP, SEXP hyperparam_inSEXP, SEXP Ex_inSEXP) {
+RcppExport SEXP _BGVAR_BVAR_linear(SEXP YrawSEXP, SEXP WrawSEXP, SEXP ExrawSEXP, SEXP plagSEXP, SEXP drawsSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP consSEXP, SEXP trendSEXP, SEXP svSEXP, SEXP priorSEXP, SEXP hyperparamSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_BGVAR_BVAR_linear_try(Y_inSEXP, W_inSEXP, p_inSEXP, draws_inSEXP, burnin_inSEXP, cons_inSEXP, trend_inSEXP, sv_inSEXP, thin_inSEXP, prior_inSEXP, hyperparam_inSEXP, Ex_inSEXP));
+        rcpp_result_gen = PROTECT(_BGVAR_BVAR_linear_try(YrawSEXP, WrawSEXP, ExrawSEXP, plagSEXP, drawsSEXP, burninSEXP, thinSEXP, consSEXP, trendSEXP, svSEXP, priorSEXP, hyperparamSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -68,20 +68,20 @@ BEGIN_RCPP
 END_RCPP
 }
 // gvar_stacking
-List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalpost_in, const SEXP draws_in, const SEXP thin_in, const SEXP trend_in, const SEXP eigen_in, const SEXP verbose_in);
-RcppExport SEXP _BGVAR_gvar_stacking(SEXP xglobal_inSEXP, SEXP plag_inSEXP, SEXP globalpost_inSEXP, SEXP draws_inSEXP, SEXP thin_inSEXP, SEXP trend_inSEXP, SEXP eigen_inSEXP, SEXP verbose_inSEXP) {
+List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List globalpost, const int draws, const int thin, const bool trend, const bool eigen, const bool verbose);
+RcppExport SEXP _BGVAR_gvar_stacking(SEXP xglobalSEXP, SEXP plagSEXP, SEXP globalpostSEXP, SEXP drawsSEXP, SEXP thinSEXP, SEXP trendSEXP, SEXP eigenSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const SEXP >::type xglobal_in(xglobal_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type plag_in(plag_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type globalpost_in(globalpost_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type draws_in(draws_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type thin_in(thin_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type trend_in(trend_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type eigen_in(eigen_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type verbose_in(verbose_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(gvar_stacking(xglobal_in, plag_in, globalpost_in, draws_in, thin_in, trend_in, eigen_in, verbose_in));
+    Rcpp::traits::input_parameter< const arma::mat >::type xglobal(xglobalSEXP);
+    Rcpp::traits::input_parameter< const int >::type plag(plagSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List >::type globalpost(globalpostSEXP);
+    Rcpp::traits::input_parameter< const int >::type draws(drawsSEXP);
+    Rcpp::traits::input_parameter< const int >::type thin(thinSEXP);
+    Rcpp::traits::input_parameter< const bool >::type trend(trendSEXP);
+    Rcpp::traits::input_parameter< const bool >::type eigen(eigenSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(gvar_stacking(xglobal, plag, globalpost, draws, thin, trend, eigen, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -115,26 +115,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// compute_irf_parallel
-List compute_irf_parallel(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in);
-RcppExport SEXP _BGVAR_compute_irf_parallel(SEXP A_largeSEXP, SEXP S_largeSEXP, SEXP Ginv_largeSEXP, SEXP typeSEXP, SEXP nhorSEXP, SEXP thindrawsSEXP, SEXP shocklist_inSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::cube >::type A_large(A_largeSEXP);
-    Rcpp::traits::input_parameter< arma::cube >::type S_large(S_largeSEXP);
-    Rcpp::traits::input_parameter< arma::cube >::type Ginv_large(Ginv_largeSEXP);
-    Rcpp::traits::input_parameter< const int >::type type(typeSEXP);
-    Rcpp::traits::input_parameter< const int >::type nhor(nhorSEXP);
-    Rcpp::traits::input_parameter< const int >::type thindraws(thindrawsSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type shocklist_in(shocklist_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_irf_parallel(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in));
-    return rcpp_result_gen;
-END_RCPP
-}
 // compute_irf
-List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in);
-RcppExport SEXP _BGVAR_compute_irf(SEXP A_largeSEXP, SEXP S_largeSEXP, SEXP Ginv_largeSEXP, SEXP typeSEXP, SEXP nhorSEXP, SEXP thindrawsSEXP, SEXP shocklist_inSEXP) {
+Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in, const bool verbose);
+RcppExport SEXP _BGVAR_compute_irf(SEXP A_largeSEXP, SEXP S_largeSEXP, SEXP Ginv_largeSEXP, SEXP typeSEXP, SEXP nhorSEXP, SEXP thindrawsSEXP, SEXP shocklist_inSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -145,7 +128,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type nhor(nhorSEXP);
     Rcpp::traits::input_parameter< const int >::type thindraws(thindrawsSEXP);
     Rcpp::traits::input_parameter< const SEXP >::type shocklist_in(shocklist_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_irf(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in));
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_irf(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -154,7 +138,7 @@ END_RCPP
 static int _BGVAR_RcppExport_validate(const char* sig) { 
     static std::set<std::string> signatures;
     if (signatures.empty()) {
-        signatures.insert("List(*BVAR_linear)(const SEXP,const SEXP,const SEXP,const SEXP,const SEXP,const SEXP,const SEXP,const SEXP,const SEXP,const SEXP,const SEXP,const SEXP)");
+        signatures.insert("List(*BVAR_linear)(arma::mat,arma::mat,arma::mat,int,int,int,int,bool,bool,bool,int,Rcpp::List)");
     }
     return signatures.find(sig) != signatures.end();
 }
@@ -172,8 +156,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BGVAR_gvar_stacking", (DL_FUNC) &_BGVAR_gvar_stacking, 8},
     {"_BGVAR_globalLik", (DL_FUNC) &_BGVAR_globalLik, 6},
     {"_BGVAR_dmvnrm_arma_fast", (DL_FUNC) &_BGVAR_dmvnrm_arma_fast, 4},
-    {"_BGVAR_compute_irf_parallel", (DL_FUNC) &_BGVAR_compute_irf_parallel, 7},
-    {"_BGVAR_compute_irf", (DL_FUNC) &_BGVAR_compute_irf, 7},
+    {"_BGVAR_compute_irf", (DL_FUNC) &_BGVAR_compute_irf, 8},
     {"_BGVAR_RcppExport_registerCCallable", (DL_FUNC) &_BGVAR_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}
 };

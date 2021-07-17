@@ -265,7 +265,7 @@
 .BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, draws, burnin, trend, SV, thin, default_hyperpara, Ex, use_R){
   Yraw <- xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
   W    <- gW[[cc]]
-  Exraw <- NULL
+  Exraw <- matrix(NA_real_)
   if(!is.null(Ex)) if(cN[cc]%in%names(Ex)) Exraw <- Ex[[cN[cc]]]
   all  <- t(W%*%t(xglobal))
   Wraw <- all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
@@ -276,14 +276,16 @@
   }
   # estimation
   if(!use_R){
-    invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
-                                                   thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)), type="message"))
+    #Rcpp::sourceCpp("./src/BVAR_linear.cpp")
+    invisible(capture.output(bvar<-try(BVAR_linear(Yraw,Wraw,Exraw,as.integer(plag),as.integer(draws),as.integer(burnin),
+                                                   as.integer(thin),TRUE,trend,SV,as.integer(prior_in),
+                                                   default_hyperpara)), type="message"))
   }else{
     bvar <- structure("message",class=c("try-error","character"))
   }
   if(is(bvar,"try-error")){
-    bvar<-try(.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
-                         thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw), silent=TRUE)
+    bvar<-try(.BVAR_linear_R(Yraw,Wraw,Exraw,plag,draws,burnin,thin,TRUE,trend,SV,
+                             prior_in,default_hyperpara,TRUE), silent=TRUE)
   }
   # error handling
   if(inherits(bvar,"try-error")){
@@ -298,65 +300,65 @@
   if(!is.null(Exraw)) Mex <- ncol(Exraw)
   xnames <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
               paste(rep("Wexlag",Mstar),rep(seq(1,plag),each=Mstar),sep=""))
-  if(!is.null(Exraw)) xnames <- c(xnames,paste(rep("Tex",Mex)))
+  if(!is.null(Ex)) xnames <- c(xnames,paste(rep("Tex",Mex)))
   xnames <- c(xnames,"cons")
   if(trend) xnames <- c(xnames,"trend")
   colnames(X) <- xnames
   #-----------------------------------------get containers ------------------------------------------#
-  A_store <- bvar$A_store; dimnames(A_store)[[2]] <- colnames(X); dimnames(A_store)[[3]] <- colnames(Y)
+  A_store <- bvar$A_store; dimnames(A_store)[[1]] <- colnames(X); dimnames(A_store)[[2]] <- colnames(Y)
   # splitting up stores
-  dims          <- dimnames(A_store)[[2]]
-  a0store       <- adrop(A_store[,which(dims=="cons"),,drop=FALSE],drop=2)
+  dims          <- dimnames(A_store)[[1]]
+  a0store       <- adrop(A_store[which(dims=="cons"),,,drop=FALSE],drop=1)
   a1store <- Exstore <- NULL
   if(trend){
-    a1store     <- adrop(A_store[,which(dims=="trend"),,drop=FALSE],drop=2)
+    a1store     <- adrop(A_store[which(dims=="trend"),,,drop=FALSE],drop=1)
   }
   if(!is.null(Exraw)){
-    Exstore     <- A_store[,which(dims=="Tex"),,drop=FALSE]
+    Exstore     <- A_store[which(dims=="Tex"),,,drop=FALSE]
   }
-  Lambda0store  <- A_store[,which(dims=="Wex"),,drop=FALSE]
+  Lambda0store  <- A_store[which(dims=="Wex"),,,drop=FALSE]
   Lambdastore   <- NULL
   Phistore    <- NULL
   for(jj in 1:plag){
-    Lambdastore[[jj]] <- A_store[,which(dims==paste("Wexlag",jj,sep="")),,drop=FALSE]
-    Phistore[[jj]]  <- A_store[,which(dims==paste("Ylag",jj,sep="")),,drop=FALSE]
+    Lambdastore[[jj]] <- A_store[which(dims==paste("Wexlag",jj,sep="")),,,drop=FALSE]
+    Phistore[[jj]]  <- A_store[which(dims==paste("Ylag",jj,sep="")),,,drop=FALSE]
   }
-  SIGMA_store <- array(NA, c(draws/thin,bigT,M,M)); dimnames(SIGMA_store) <- list(NULL,NULL,colnames(Y),colnames(Y))
+  SIGMA_store <- array(NA, c(bigT,M,M,draws/thin)); dimnames(SIGMA_store) <- list(NULL,colnames(Y),colnames(Y),NULL)
   L_store <- bvar$L_store
   for(irep in 1:(draws/thin)){
     for(tt in 1:bigT){
       if(M>1){
-        SIGMA_store[irep,tt,,] <- L_store[irep,,]%*%diag(exp(bvar$Sv_store[irep,tt,]))%*%t(L_store[irep,,])
+        SIGMA_store[tt,,,irep] <- L_store[,,irep]%*%diag(exp(bvar$Sv_store[tt,,irep]))%*%t(L_store[,,irep])
       }else{
-        SIGMA_store[irep,tt,,] <- L_store[irep,,]%*%exp(bvar$Sv_store[irep,tt,])%*%t(L_store[irep,,])
+        SIGMA_store[tt,,,irep] <- L_store[,,irep]%*%exp(bvar$Sv_store[tt,,irep])%*%t(L_store[,,irep])
       }
     }
   }
-  SIGMAmed_store <- apply(SIGMA_store,c(1,3,4),median)
-  theta_store   <- bvar$theta_store; dimnames(theta_store)[[2]] <- colnames(X); dimnames(theta_store)[[3]] <- colnames(Y)
+  SIGMAmed_store <- apply(SIGMA_store,c(2,3,4),median)
+  theta_store   <- bvar$theta_store; dimnames(theta_store)[[1]] <- colnames(X); dimnames(theta_store)[[2]] <- colnames(Y)
   if(SV){
-    vola_store  <- bvar$Sv_store; dimnames(vola_store) <- list(NULL,NULL,colnames(Y))
+    vola_store  <- bvar$Sv_store; dimnames(vola_store) <- list(NULL,colnames(Y),NULL)
     pars_store  <- bvar$pars_store
-    vola_post   <- apply(vola_store,c(2,3),median)
-    pars_post   <- apply(pars_store,c(2,3),median)
+    vola_post   <- apply(vola_store,c(1,2),median)
+    pars_post   <- apply(pars_store,c(1,2),median)
   }else{
     vola_store  <- bvar$Sv_store; pars_store <- NULL;
-    vola_post   <- apply(vola_store,c(2,3),median); pars_post <- NULL
+    vola_post   <- apply(vola_store,c(1,2),median); pars_post <- NULL
   }
-  res_store     <- bvar$res_store; dimnames(res_store) <- list(NULL,NULL,colnames(Y))
+  res_store     <- bvar$res_store; dimnames(res_store) <- list(NULL,colnames(Y),NULL)
   # MN
   if(prior=="MN"){
-    shrink_store  <- bvar$shrink_store; dimnames(shrink_store) <- list(NULL,c("shrink1","shrink2","shrink4"))
-    shrink_post   <- apply(shrink_store,2,median)
+    shrink_store  <- bvar$shrink_store; dimnames(shrink_store) <- list(c("shrink1","shrink2","shrink4"),NULL,NULL)
+    shrink_post   <- apply(shrink_store,c(1,2),median)
   }else{
     shrink_store  <- shrink_post <- NULL
   }
   # SSVS
   if(prior=="SSVS"){
-    gamma_store <- bvar$gamma_store; dimnames(gamma_store) <- list(NULL,colnames(X),colnames(Y))
-    omega_store <- bvar$omega_store; dimnames(omega_store) <- list(NULL,colnames(Y),colnames(Y))
-    PIP         <- apply(gamma_store,c(2,3),mean)
-    PIP_omega   <- apply(omega_store,c(2,3),mean)
+    gamma_store <- bvar$gamma_store; dimnames(gamma_store) <- list(colnames(X),colnames(Y),NULL)
+    omega_store <- bvar$omega_store; dimnames(omega_store) <- list(colnames(Y),colnames(Y),NULL)
+    PIP         <- apply(gamma_store,c(1,2),mean)
+    PIP_omega   <- apply(omega_store,c(1,2),mean)
   }else{
     gamma_store <- omega_store <- PIP <- PIP_omega <- NULL
   }
@@ -364,21 +366,21 @@
   if(prior=="NG"){
     lambda2_store <- bvar$lambda2_store
     tau_store     <- bvar$tau_store
-    dimnames(lambda2_store) <- list(NULL,paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"))
-    dimnames(lambda2_store) <- list(NULL,paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"))
-    lambda2_post  <- apply(lambda2_store,c(2,3),median)
-    tau_post      <- apply(tau_store,c(2,3),median)
+    dimnames(lambda2_store) <- list(paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"),NULL)
+    dimnames(lambda2_store) <- list(paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"),NULL)
+    lambda2_post  <- apply(lambda2_store,c(1,2),median)
+    tau_post      <- apply(tau_store,c(1,2),median)
   }else{
-    lambda2_store <- tau_store <- lambda2_post <- tau_post <- NA
+    lambda2_store <- tau_store <- lambda2_post <- tau_post <- NULL
   }
   store <- list(A_store=A_store,a0store=a0store,a1store=a1store,Lambda0store=Lambda0store,Lambdastore=Lambdastore,Phistore=Phistore,Exstore=Exstore,SIGMA_store=SIGMA_store,SIGMAmed_store=SIGMAmed_store,L_store=L_store,theta_store=theta_store,vola_store=vola_store,pars_store=pars_store,res_store=res_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,lambda2_store=lambda2_store,tau_store=tau_store)
   #------------------------------------ compute posteriors -------------------------------------------#
-  A_post      <- apply(A_store,c(2,3),median)
-  SIGMA_post  <- apply(SIGMA_store,c(2,3,4),median)
-  S_post      <- apply(SIGMA_post,c(2,3),mean)
+  A_post      <- apply(A_store,c(1,2),median)
+  SIGMA_post  <- apply(SIGMA_store,c(1,2,3),median)
+  S_post      <- apply(SIGMA_post,c(1,2),mean)
   Sig         <- S_post/(bigT-K)
-  theta_post  <- apply(theta_store,c(2,3),median)
-  res_post    <- apply(res_store,c(2,3),median)
+  theta_post  <- apply(theta_store,c(1,2),median)
+  res_post    <- apply(res_store,c(1,2),median)
   # splitting up posteriors
   a0post      <- A_post[which(dims=="cons"),,drop=FALSE]
   a1post <- Expost <- NULL
@@ -406,46 +408,42 @@
 #' @importFrom stats rnorm rgamma runif dnorm
 #' @export
 #' @noRd
-.BVAR_linear_R <- function(Y_in,W_in,p_in,draws_in,burnin_in,cons_in,trend_in,sv_in,thin_in,quiet_in,prior_in,hyperparam_in,Ex_in){
+.BVAR_linear_R <- function(Yraw,Wraw,Exraw,plag,draws,burnin,thin,cons,trend,sv,prior,hyperpara,verbose){
   #----------------------------------------INPUTS----------------------------------------------------#
-  Yraw  <- Y_in
-  p     <- p_in
   Traw  <- nrow(Yraw)
   M     <- ncol(Yraw)
-  K     <- M*p
-  Ylag  <- .mlag(Yraw,p)
+  K     <- M*plag
+  Ylag  <- .mlag(Yraw,plag)
   nameslags <- NULL
-  for (ii in 1:p) nameslags <- c(nameslags,rep(paste("Ylag",ii,sep=""),M))
+  for (ii in 1:plag) nameslags <- c(nameslags,rep(paste("Ylag",ii,sep=""),M))
   colnames(Ylag) <- nameslags
   
-  exo   <- FALSE; Mstar <- 0; Kstar <- 0; wexnameslags <- NULL; Wraw <- NULL; Wexlag <- NULL
-  if(!is.null(W_in)){
-    Wraw  <- W_in; Mstar <- ncol(Wraw); Kstar <- Mstar*(p+1)
-    exo <- TRUE
-    Wexlag <- .mlag(Wraw,p)
-    colnames(Wraw) <- rep("Wex",Mstar)
-    for (ii in 1:p) wexnameslags <- c(wexnameslags,rep(paste("Wexlag",ii,sep=""),Mstar))
-    colnames(Wexlag) <- wexnameslags
-  }
+  Mstar <- ncol(Wraw)
+  Kstar <- Mstar*(plag+1)
+  exo <- TRUE
+  Wexlag <- .mlag(Wraw,plag)
+  colnames(Wraw) <- rep("Wex",Mstar)
+  wexnameslags <- NULL
+  for (ii in 1:plag) wexnameslags <- c(wexnameslags,rep(paste("Wexlag",ii,sep=""),Mstar))
+  colnames(Wexlag) <- wexnameslags
   
-  texo <- FALSE; Mex <- 0; Exraw <- NULL
-  if(!is.null(Ex_in)){
-    Exraw <- Ex_in; Mex <- ncol(Exraw)
+  texo <- FALSE; Mex <- 0
+  if(nrow(Exraw) != 1){
+    Mex <- ncol(Exraw)
     texo <- TRUE
     colnames(Exraw) <- rep("Tex",Mex)
   }
   
-  X <- cbind(Ylag,Wraw,Wexlag,Exraw)
-  X <- X[(p+1):nrow(X),,drop=FALSE]
-  Y <- Yraw[(p+1):Traw,,drop=FALSE]
+  Xraw <- cbind(Ylag,Wraw,Wexlag)
+  if(texo) Xraw <- cbind(X,Exraw)
+  X <- Xraw[(plag+1):nrow(Xraw),,drop=FALSE]
+  Y <- Yraw[(plag+1):Traw,,drop=FALSE]
   bigT  <- nrow(X)
   
-  cons  <- cons_in
   if(cons){
     X <- cbind(X,1)
     colnames(X)[ncol(X)] <- "cons"
   }
-  trend <- trend_in
   if(trend){
     X <- cbind(X,seq(1,bigT))
     colnames(X)[ncol(X)] <- "trend"
@@ -457,9 +455,6 @@
   #---------------------------------------------------------------------------------------------------------
   # HYPERPARAMETERS
   #---------------------------------------------------------------------------------------------------------
-  hyperpara <- hyperparam_in
-  prior     <- prior_in
-  sv        <- sv_in
   prmean    <- hyperpara$prmean
   a_1       <- hyperpara$a_1
   b_1       <- hyperpara$b_1
@@ -525,31 +520,34 @@
   scale4  <- .43
   sigma_sq  <- matrix(0,M,1) #vector which stores the residual variance
   for (i in 1:M){
-    Ylag_i        <- .mlag(Yraw[,i],p)
-    Ylag_i        <- Ylag_i[(p+1):nrow(Ylag_i),,drop=FALSE]
-    Y_i           <- Yraw[(p+1):nrow(Yraw),i,drop=FALSE]
+    Ylag_i        <- .mlag(Yraw[,i],plag)
+    Ylag_i        <- Ylag_i[(plag+1):nrow(Ylag_i),,drop=FALSE]
+    Y_i           <- Yraw[(plag+1):nrow(Yraw),i,drop=FALSE]
     Ylag_i        <- cbind(Ylag_i,seq(1,nrow(Y_i)))
     alpha_i       <- solve(crossprod(Ylag_i))%*%crossprod(Ylag_i,Y_i)
-    sigma_sq[i,1] <- (1/(nrow(Y_i)-p-1))*t(Y_i-Ylag_i%*%alpha_i)%*%(Y_i-Ylag_i%*%alpha_i)
+    sigma_sq[i,1] <- (1/(nrow(Y_i)-plag-1))*t(Y_i-Ylag_i%*%alpha_i)%*%(Y_i-Ylag_i%*%alpha_i)
   }
   sigma_wex <- matrix(0,Mstar,1)
   for (j in 1:Mstar){
-    Ywex_i <- .mlag(Wraw[,j],p)
-    Ywex_i <- Ywex_i[(p+1):Traw,]
-    Yw_i   <- Wraw[(p+1):Traw,j,drop=FALSE]
+    Ywex_i <- .mlag(Wraw[,j],plag)
+    Ywex_i <- Ywex_i[(plag+1):Traw,]
+    Yw_i   <- Wraw[(plag+1):Traw,j,drop=FALSE]
     Ywex_i <- cbind(Ywex_i,seq(1,nrow(Yw_i)))
     alpha_w <- solve(crossprod(Ywex_i))%*%t(Ywex_i)%*%Yw_i
-    sigma_wex[j,1] <- (1/(nrow(Yw_i)-p-1))*t(Yw_i-Ywex_i%*%alpha_w)%*%(Yw_i-Ywex_i%*%alpha_w)
+    sigma_wex[j,1] <- (1/(nrow(Yw_i)-plag-1))*t(Yw_i-Ywex_i%*%alpha_w)%*%(Yw_i-Ywex_i%*%alpha_w)
   }
   if(prior==1){
-    theta <- .get_V(k=k,M=M,Mstar=Mstar,p=p,a_bar_1=shrink1,a_bar_2=shrink2,a_bar_3=shrink3,
+    theta <- .get_V(k=k,M=M,Mstar=Mstar,p=plag,a_bar_1=shrink1,a_bar_2=shrink2,a_bar_3=shrink3,
                     a_bar_4=shrink4,sigma_sq=sigma_sq,sigma_wex=sigma_wex,trend=trend)
   }
+  post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink1,0.01,0.01,log=TRUE)+log(shrink1) # correction term
+  post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink2,0.01,0.01,log=TRUE)+log(shrink2) # correction term
+  post4 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink4,0.01,0.01,log=TRUE)+log(shrink4)
   
   # SSVS stuff
   gamma  <-  matrix(1,k,M)
   sigma_alpha  <-  sqrt(diag(kronecker(SIGMA_OLS,XtXinv)))
-  tau0 <- matrix(NA, k, M); tau1 <- matrix(NA, k, M)
+  tau0 <- matrix(NA_real_, k, M); tau1 <- matrix(NA_real_, k, M)
   ii <- 1
   for(mm in 1:M){
     for(kk in 1:k){
@@ -559,12 +557,12 @@
     }
   }
   # NG stuff
-  lambda2_A    <- matrix(0.01,p+1,2)
-  A_tau        <- matrix(tau_theta,p+1,2)
+  lambda2_A    <- matrix(0.01,plag+1,2)
+  A_tau        <- matrix(tau_theta,plag+1,2)
   colnames(A_tau) <- colnames(lambda2_A) <- c("endo","exo")
-  rownames(A_tau) <- rownames(lambda2_A) <- paste("lag.",seq(0,p),sep="")
-  A_tuning     <- matrix(.43,p+1,2)
-  A_accept     <- matrix(0,p+1,2)
+  rownames(A_tau) <- rownames(lambda2_A) <- paste("lag.",seq(0,plag),sep="")
+  A_tuning     <- matrix(.43,plag+1,2)
+  A_accept     <- matrix(0,plag+1,2)
   lambda2_A[1,1] <- A_tau[1,1] <- A_tuning[1,1] <- A_accept[1,1] <- NA
   #------------------------------------
   # Priors on coefs in H matrix of VCV
@@ -594,33 +592,30 @@
   #---------------------------------------------------------------------------------------------------------
   # SAMPLER MISCELLANEOUS
   #---------------------------------------------------------------------------------------------------------
-  nsave <- draws_in
-  nburn <- burnin_in
-  ntot  <- nsave+nburn
+  ntot  <- draws+burnin
   
   # thinning
-  thin         <- thin_in
   count        <- 0
-  thindraws    <- nsave/thin
-  thin.draws   <- seq(nburn+1,ntot,by=thin)
+  thindraws    <- draws/thin
+  thin.draws   <- seq(burnin+1,ntot,by=thin)
   #---------------------------------------------------------------------------------------------------------
   # STORAGES
   #---------------------------------------------------------------------------------------------------------
-  A_store      <- array(NA,c(thindraws,k,M))
-  L_store      <- array(NA,c(thindraws,M,M))
-  res_store    <- array(NA,c(thindraws,bigT,M))
+  A_store      <- array(NA,c(k,M,thindraws))
+  L_store      <- array(NA,c(M,M,thindraws))
+  res_store    <- array(NA,c(bigT,M,thindraws))
   # SV
-  Sv_store     <- array(NA,c(thindraws,bigT,M))
-  pars_store   <- array(NA,c(thindraws,4,M))
+  Sv_store     <- array(NA,c(bigT,M,thindraws))
+  pars_store   <- array(NA,c(4,M,thindraws))
   # MN
-  shrink_store <- array(NA,c(thindraws,3))
+  shrink_store <- array(NA,c(3,1,thindraws))
   # SSVS
-  gamma_store  <- array(NA,c(thindraws,k,M))
-  omega_store  <- array(NA,c(thindraws,M,M))
+  gamma_store  <- array(NA,c(k,M,thindraws))
+  omega_store  <- array(NA,c(M,M,thindraws))
   # NG
-  theta_store  <- array(NA,c(thindraws,k,M))
-  lambda2_store<- array(NA,c(thindraws,p+1,3))
-  tau_store    <- array(NA,c(thindraws,p+1,3))
+  theta_store  <- array(NA,c(k,M,thindraws))
+  lambda2_store<- array(NA,c(plag+1,3,thindraws))
+  tau_store    <- array(NA,c(plag+1,3,thindraws))
   #---------------------------------------------------------------------------------------------------------
   # MCMC LOOP
   #---------------------------------------------------------------------------------------------------------
@@ -664,47 +659,41 @@
     if(prior==1){
       #Step for the first shrinkage parameter (own lags)
       shrink1.prop <- exp(rnorm(1,0,scale1))*shrink1
-      theta1.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=p,a_bar_1=shrink1.prop,a_bar_2=shrink2,a_bar_3=shrink3,
+      theta1.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=plag,a_bar_1=shrink1.prop,a_bar_2=shrink2,a_bar_3=shrink3,
                               a_bar_4=shrink4,sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post1.prop<-sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)
-      post1.prop<-post1.prop+log(shrink1.prop) # correction term
-      post1 <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink1,0.01,0.01,log=TRUE)
-      post1 <- post1+log(shrink1) # correction term
+      post1.prop<-sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)+log(shrink1.prop) # correction term
       if ((post1.prop-post1)>log(runif(1,0,1))){
         shrink1 <- shrink1.prop
         theta   <- theta1.prop
+        post1   <- post1.prop
         accept1 <- accept1+1
       }
       
       #Step for the second shrinkage parameter (cross equation)
       shrink2.prop <- exp(rnorm(1,0,scale2))*shrink2
-      theta2.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=p,a_bar_1=shrink1,a_bar_2=shrink2.prop,a_bar_3=shrink3,
+      theta2.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=plag,a_bar_1=shrink1,a_bar_2=shrink2.prop,a_bar_3=shrink3,
                               a_bar_4=shrink4,sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post2.prop <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)
-      post2.prop <- post2.prop + log(shrink2.prop) # correction term
-      post2 <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink2,0.01,0.01,log=TRUE)
-      post2 <- post2 + log(shrink2) # correction term
+      post2.prop <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)+log(shrink2.prop) # correction term
       if ((post2.prop-post2)>log(runif(1,0,1))){
         shrink2 <- shrink2.prop
         theta   <- theta2.prop
+        post2   <- post2.prop
         accept2 <- accept2+1
       }
       
       #Step for the final shrinkage parameter (weakly exogenous)
       shrink4.prop <- exp(rnorm(1,0,scale4))*shrink4
-      theta4.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=p,a_bar_1=shrink1,a_bar_2=shrink2,a_bar_3=shrink3,
+      theta4.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=plag,a_bar_1=shrink1,a_bar_2=shrink2,a_bar_3=shrink3,
                               a_bar_4=shrink4.prop,sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post4.prop <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)
-      post4.prop <- post4.prop + log(shrink4.prop)
-      post4 <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink4,0.01,0.01,log=TRUE)
-      post4 <- post4 + log(shrink4)
+      post4.prop <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)+log(shrink4.prop)
       if ((post4.prop-post4)>log(runif(1,0,1))){
         shrink4  <- shrink4.prop
         theta    <- theta4.prop
+        post4    <- post4.prop
         accept4  <- accept4+1
       }
       
-      if (irep<(0.5*nburn)){
+      if (irep<(0.5*burnin)){
         if ((accept1/irep)<0.15) scale1 <- 0.99*scale1
         if ((accept1/irep)>0.3)  scale1 <- 1.01*scale1
         if ((accept2/irep)<0.15) scale2 <- 0.99*scale2
@@ -730,124 +719,138 @@
           }
         }
       }
-      for(mm in 2:M){
-        for(ii in 1:(mm-1)){
-          u_ij1  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa0) * q_ij
-          u_ij2  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa1) * (1-q_ij)
-          ost  <-  u_ij1/(u_ij1 + u_ij2)
-          if(is.na(ost)) ost <- 1
-          omega[mm,ii] <-  .bernoulli(ost)
-          if (is.na(omega[mm,ii])) omega[mm,ii] <- 1
-          if(omega[mm,ii]==1){
-            L_prior[mm,ii] <- kappa1^2
-          }else{
-            L_prior[mm,ii] <- kappa0^2
+      if(M>1){
+        for(mm in 2:M){
+          for(ii in 1:(mm-1)){
+            u_ij1  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa0) * q_ij
+            u_ij2  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa1) * (1-q_ij)
+            ost  <-  u_ij1/(u_ij1 + u_ij2)
+            if(is.na(ost)) ost <- 1
+            omega[mm,ii] <-  .bernoulli(ost)
+            if (is.na(omega[mm,ii])) omega[mm,ii] <- 1
+            if(omega[mm,ii]==1){
+              L_prior[mm,ii] <- kappa1^2
+            }else{
+              L_prior[mm,ii] <- kappa0^2
+            }
           }
         }
-      }
+      } # END-if M>1
     }
     # NG
     if(prior==3){
       # Normal-Gamma for Covariances
-      lambda2_L    <- rgamma(1,d_lambda+L_tau*v,e_lambda+L_tau/2*sum(L_prior[lower.tri(L_prior)]))
-      #Step VI: Sample the prior scaling factors for covariances from GIG
-      for(mm in 2:M){
-        for(ii in 1:(mm-1)){
-          L_prior[mm,ii] <- do_rgig1(lambda=L_tau-0.5, chi=(L_draw[mm,ii]-l_prior[mm,ii])^2, psi=L_tau*lambda2_L)
+      if(M>1){
+        lambda2_L    <- rgamma(1,d_lambda+L_tau*v,e_lambda+L_tau/2*sum(L_prior[lower.tri(L_prior)]))
+        #Step VI: Sample the prior scaling factors for covariances from GIG
+        for(mm in 2:M){
+          for(ii in 1:(mm-1)){
+            temp <- do_rgig1(lambda = L_tau-0.5, 
+                             chi    = (L_draw[mm,ii] - l_prior[mm,ii])^2, 
+                             psi    = L_tau*lambda2_L)
+            temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
+            L_prior[mm,ii] <- temp
+          }
         }
-      }
-      if(sample_tau){
-        #Sample L_tau through a simple RWMH step
-        L_tau_prop       <- exp(rnorm(1,0,L_tuning))*L_tau
-        post_L_tau_prop  <- .atau_post(atau=L_tau_prop, thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
-        post_L_tau_old   <- .atau_post(atau=L_tau,      thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
-        post.diff    <- post_L_tau_prop-post_L_tau_old+log(L_tau_prop)-log(L_tau)
-        post.diff    <- ifelse(is.nan(post.diff),-Inf,post.diff)
-        if (post.diff > log(runif(1,0,1))){
-          L_tau      <- L_tau_prop
-          L_accept   <- L_accept+1
+        if(sample_tau){
+          #Sample L_tau through a simple RWMH step
+          L_tau_prop       <- exp(rnorm(1,0,L_tuning))*L_tau
+          post_L_tau_prop  <- .atau_post(atau=L_tau_prop, thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
+          post_L_tau_old   <- .atau_post(atau=L_tau,      thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
+          post.diff    <- post_L_tau_prop-post_L_tau_old+log(L_tau_prop)-log(L_tau)
+          post.diff    <- ifelse(is.nan(post.diff),-Inf,post.diff)
+          if (post.diff > log(runif(1,0,1))){
+            L_tau      <- L_tau_prop
+            L_accept   <- L_accept+1
+          }
+          if (irep<(0.5*burnin)){
+            if ((L_accept/irep)>0.3)  L_tuning <- 1.01*L_tuning
+            if ((L_accept/irep)<0.15) L_tuning <- 0.99*L_tuning
+          }
         }
-        if (irep<(0.5*nburn)){
-          if ((L_accept/irep)>0.3)  L_tuning <- 1.01*L_tuning
-          if ((L_accept/irep)<0.15) L_tuning <- 0.99*L_tuning
-        }
-      }
+      } # END-if M>1
       # Norml-Gamma for weakly exogenous
-      for (ss in 0:p){
-        if (ss==0) slct.i <- which(rownames(A_draw)=="Wex") else slct.i <- which(rownames(A_draw)==paste("Wexlag",ss,sep=""))
+      for (ss in 0:plag){
+        if(ss==0) slct.i <- which(rownames(A_draw)=="Wex") else slct.i <- which(rownames(A_draw)==paste("Wexlag",ss,sep=""))
         A.lag.star  <- A_draw[slct.i,,drop=FALSE]
         A.lag.prior <- A_prior[slct.i,,drop=FALSE]
         theta.lag   <- theta[slct.i,,drop=FALSE]
         
-        MMstar <- ncol(A.lag.star)*nrow(A.lag.star)
         if (ss==0){
-          lambda2_A[ss+1,2] <- rgamma(1,d_lambda+A_tau[ss+1,2]*MMstar,e_lambda+A_tau[ss+1,2]/2*sum(theta.lag))
+          lambda2_A[ss+1,2] <- rgamma(n     = 1,
+                                      shape = d_lambda + A_tau[ss+1,2]*Mstar*M,
+                                      rate  = e_lambda + A_tau[ss+1,2]/2*sum(theta.lag))
         }else{
-          lambda2_A[ss+1,2] <- rgamma(1,d_lambda+A_tau[ss+1,2]*MMstar,e_lambda+A_tau[ss+1,2]/2*prod(lambda2_A[1:ss,2])*sum(theta.lag))
+          lambda2_A[ss+1,2] <- rgamma(n     = 1,
+                                      shape = d_lambda + A_tau[ss+1,2]*Mstar^2,
+                                      rate  = e_lambda + A_tau[ss+1,2]*0.5*prod(lambda2_A[1:ss,2])*sum(theta.lag))
         }
-        for (jj in 1:Mstar){
-          for (ii in 1:M){
-            theta.lag[jj,ii] <- do_rgig1(lambda=A_tau[ss+1,2]-0.5,
-                                         chi=(A.lag.star[jj,ii]-A.lag.prior[jj,ii])^2,
-                                         psi=A_tau[ss+1,2]*prod(lambda2_A[1:(ss+1),2]))
+        for(ii in 1:Mstar){
+          for(mm in 1:M){
+            temp <- do_rgig1(lambda = A_tau[ss+1,2]-0.5,
+                             chi    = (A.lag.star[ii,mm] - A.lag.prior[ii,mm])^2,
+                             psi    = A_tau[ss+1,2]*prod(lambda2_A[1:(ss+1),2]))
+            temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
+            theta.lag[ii,mm] <- temp
           }
         }
         theta[slct.i,] <- theta.lag
-        theta[theta<1e-7] <- 1e-7
         
         if(sample_tau){
           #Sample a_tau through a simple RWMH step (on-line tuning of the MH scaling within the first 50% of the burn-in phase)
           A_tau_prop       <- exp(rnorm(1,0,A_tuning[ss+1,2]))*A_tau[ss+1,2]
           post_A_tau_prop  <- .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
           post_A_tau_old   <- .atau_post(atau=A_tau[ss+1,2], thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
-          post.diff        <- post_A_tau_prop-post_A_tau_old+log(A_tau_prop)-log(A_tau)
+          post.diff        <- post_A_tau_prop - post_A_tau_old + log(A_tau_prop) - log(A_tau[ss+1,2])
           post.diff        <- ifelse(is.nan(post.diff),-Inf,post.diff)
           if (post.diff > log(runif(1,0,1))){
             A_tau[ss+1,2]    <- A_tau_prop
             A_accept[ss+1,2] <- A_accept[ss+1,2]+1
           }
-          if (irep<(0.5*nburn)){
+          if (irep<(0.5*burnin)){
             if ((A_accept[ss+1,2]/irep)>0.3)  A_tuning[ss+1,2] <- 1.01*A_tuning[ss+1,2]
             if ((A_accept[ss+1,2]/irep)<0.15) A_tuning[ss+1,2] <- 0.99*A_tuning[ss+1,2]
           }
         }
       }
       # Normal-Gamma for endogenous variables
-      for (ss in 1:p){
+      for(ss in 1:plag){
         slct.i    <- which(rownames(A_draw)==paste("Ylag",ss,sep=""))
         A.lag     <- A_draw[slct.i,,drop=FALSE]
         A.prior   <- A_prior[slct.i,,drop=FALSE]
         theta.lag <- theta[slct.i,,drop=FALSE]
         
-        M.end <- ncol(A.lag.star)*nrow(A.lag.star)
         if (ss==1){
-          lambda2_A[ss+1,1] <- rgamma(1,d_lambda+A_tau[ss+1,1]*M.end,e_lambda+A_tau[ss+1,1]/2*sum(theta.lag))
+          lambda2_A[ss+1,1] <- rgamma(n     = 1,
+                                      shape = d_lambda + A_tau[ss+1,1]*M^2,
+                                      rate  = e_lambda + A_tau[ss+1,1]/2*sum(theta.lag))
         }else{
-          lambda2_A[ss+1,1] <- rgamma(1,d_lambda+A_tau[ss+1,1]*M.end,e_lambda+A_tau[ss+1,1]/2*prod(lambda2_A[2:(ss+1),1])*sum(theta.lag))
+          lambda2_A[ss+1,1] <- rgamma(n     = 1,
+                                      shape = d_lambda + A_tau[ss+1,1]*M^2,
+                                      rate  = e_lambda + A_tau[ss+1,1]/2*prod(lambda2_A[2:(ss+1),1])*sum(theta.lag))
         }
-        for (jj in 1:M){
-          for (ii in 1:M){
-            theta.lag[jj,ii] <- do_rgig1(lambda=A_tau[ss+1,1]-0.5,
-                                         chi=(A.lag[jj,ii]-A.prior[jj,ii])^2,
-                                         psi=A_tau[ss+1,1]*prod(lambda2_A[2:(ss+1),1]))
+        for(ii in 1:M){
+          for(mm in 1:M){
+            temp <- do_rgig1(lambda = A_tau[ss+1,1] - 0.5,
+                             chi    = (A.lag[ii,mm] - A.prior[ii,mm])^2,
+                             psi    = A_tau[ss+1,1]*prod(lambda2_A[2:(ss+1),1]))
+            temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
+            theta.lag[ii,mm] <- temp
           }
         }
         theta[slct.i,] <- theta.lag
-        theta[theta<1e-8] <- 1e-8
-        #TO BE MODIFIED
         if (sample_tau){
           #Sample a_tau through a simple RWMH step (on-line tuning of the MH scaling within the first 50% of the burn-in phase)
           A_tau_prop <- exp(rnorm(1,0,A_tuning[ss+1,1]))*A_tau[ss+1,1]
           post_A_tau_prop <- .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2=prod(lambda2_A[2:(ss+1),1]))
           post_A_tau_old  <- .atau_post(atau=A_tau[ss+1,1], thetas=as.vector(theta.lag),lambda2=prod(lambda2_A[2:(ss+1),1]))
-          post.diff <- post_A_tau_prop-post_A_tau_old+log(A_tau_prop)-log(A_tau)
+          post.diff <- post_A_tau_prop-post_A_tau_old+log(A_tau_prop)-log(A_tau[ss+1,1])
           post.diff <- ifelse(is.nan(post.diff),-Inf,post.diff)
-          
           if (post.diff > log(runif(1,0,1))){
             A_tau[ss+1,1] <- A_tau_prop
             A_accept[ss+1,1] <- A_accept[ss+1,1]+1
           }
-          if (irep<(0.5*nburn)){
+          if (irep<(0.5*burnin)){
             if ((A_accept[ss+1,1]/irep)>0.3)  A_tuning[ss+1,1] <- 1.01*A_tuning[ss+1,1]
             if ((A_accept[ss+1,1]/irep)<0.15) A_tuning[ss+1,1] <- 0.99*A_tuning[ss+1,1]
           }
@@ -856,7 +859,7 @@
     }
     #----------------------------------------------------------------------------
     # Step 3: Sample variances
-    if (sv){
+    if(sv){
       for (mm in 1:M){
         para   <- as.list(pars_var[,mm])
         para$nu = Inf; para$rho=0; para$beta<-0
@@ -886,29 +889,29 @@
     # Step 4: store draws
     if(irep %in% thin.draws){
       count <- count+1
-      A_store[count,,]   <- A_draw
-      L_store[count,,]   <- L_draw
-      res_store[count,,] <- Y-X%*%A_draw
+      A_store[,,count]   <- A_draw
+      L_store[,,count]   <- L_draw
+      res_store[,,count] <- Y-X%*%A_draw
       # SV
-      Sv_store[count,,]   <- Sv_draw
-      pars_store[count,,] <- pars_var
+      Sv_store[,,count]   <- Sv_draw
+      pars_store[,,count] <- pars_var
       # MN
-      shrink_store[count,] <- c(shrink1,shrink2,shrink4)
+      shrink_store[,,count] <- c(shrink1,shrink2,shrink4)
       # SSVS
-      gamma_store[count,,] <- gamma
-      omega_store[count,,] <- omega
+      gamma_store[,,count] <- gamma
+      omega_store[,,count] <- omega
       # NG
-      theta_store[count,,]     <- theta
-      lambda2_store[count,1,3] <- lambda2_L
-      lambda2_store[count,1:(p+1),1:2] <- lambda2_A
-      tau_store[count,1,3]             <- L_tau
-      tau_store[count,1:(p+1),1:2]     <- A_tau
+      theta_store[,,count]     <- theta
+      lambda2_store[1,3,count] <- lambda2_L
+      lambda2_store[1:(plag+1),1:2,count] <- lambda2_A
+      tau_store[1,3,count]             <- L_tau
+      tau_store[1:(plag+1),1:2,count]     <- A_tau
     }
   }
   #---------------------------------------------------------------------------------------------------------
   # END ESTIMATION
   #---------------------------------------------------------------------------------------------------------
-  dimnames(A_store)=list(NULL,colnames(X),colnames(A_OLS))
+  dimnames(A_store)=list(colnames(X),colnames(A_OLS),NULL)
   
   ret <- list(Y=Y,X=X,A_store=A_store,L_store=L_store,Sv_store=Sv_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,theta_store=theta_store,lambda2_store=lambda2_store,tau_store=tau_store,pars_store=pars_store,res_store=res_store)
   
@@ -921,7 +924,7 @@
 #' @importFrom stats median
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @noRd
-.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,eigen=FALSE,trim=NULL){
+.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,eigen=FALSE,trim=NULL,verbose=TRUE){
   # initialize objects here
   bigT <- nrow(xglobal) 
   bigK <- ncol(xglobal)
@@ -932,10 +935,11 @@
   trim.info <- "No trimming"
   
   A_large     <- array(NA, dim=c(thindraws,bigK,(bigK*plag+1+ifelse(trend,1,0))))
-  S_large     <- array(NA, dim=c(thindraws,bigK,bigK))
-  Ginv_large  <- array(NA, dim=c(thindraws,bigK,bigK))
-  F_large     <- array(NA, dim=c(thindraws,bigK,bigK,plag))
-  dimnames(S_large)[[2]]<-dimnames(S_large)[[3]]<-dimnames(Ginv_large)[[2]]<-dimnames(Ginv_large)[[3]]<-dimnames(A_large)[[2]]<-colnames(xglobal)
+  A_large     <- array(NA_real_, dim=c(bigK,bigK*plag+1+ifelse(trend,1,0),thindraws))
+  S_large     <- array(NA, dim=c(bigK,bigK,thindraws))
+  Ginv_large  <- array(NA, dim=c(bigK,bigK,thindraws))
+  F_large     <- array(NA, dim=c(bigK,bigK,plag,thindraws))
+  dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
   
   pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
   for (irep in 1:thindraws){
@@ -948,30 +952,30 @@
     for (cc in 1:length(cN)){
       VAR <- globalpost[[cc]]
       W   <- VAR$W
-      A   <- cbind(diag(ncol(VAR$Y)),-t(adrop(VAR$store$Lambda0store[irep,,,drop=FALSE],drop=1)))
+      A   <- cbind(diag(ncol(VAR$Y)),-t(adrop(VAR$store$Lambda0store[,,irep,drop=FALSE],drop=3)))
       
       for(pp in 1:plag){
-        assign(paste("B",pp,sep=""),cbind(t(adrop(VAR$store$Phistore[[pp]][irep,,,drop=FALSE],drop=1)),
-                                    t(adrop(VAR$store$Lambdastore[[pp]][irep,,,drop=FALSE],drop=1))))
+        assign(paste("B",pp,sep=""),cbind(t(adrop(VAR$store$Phistore[[pp]][,,irep,drop=FALSE],drop=3)),
+                                    t(adrop(VAR$store$Lambdastore[[pp]][,,irep,drop=FALSE],drop=3))))
         if(cc==1) assign(paste("H",pp,sep=""), get(paste("B",pp,sep=""))%*%W)
         if(cc>1)  assign(paste("H",pp,sep=""), rbind(get(paste("H",pp,sep="")),get(paste("B",pp,sep=""))%*%W))
       }
       G            <- rbind(G,A%*%W)
-      a0           <- rbind(a0,t(VAR$store$a0store[irep,,drop=FALSE]))
-      if(trend) a1 <- rbind(a1,t(VAR$store$a1store[irep,,drop=FALSE]))
-      S_post[[cc]] <- apply(adrop(VAR$store$SIGMA_store[irep,,,,drop=FALSE],drop=1),c(2,3),median)
+      a0           <- rbind(a0,VAR$store$a0store[,irep,drop=FALSE])
+      if(trend) a1 <- rbind(a1,VAR$store$a1store[,irep,drop=FALSE])
+      S_post[[cc]] <- apply(adrop(VAR$store$SIGMA_store[,,,irep,drop=FALSE],drop=4),c(2,3),median)
     }
     G.inv  <- solve(G)
-    S_large[irep,,] <- as.matrix(bdiag(S_post))
+    S_large[,,irep] <- as.matrix(bdiag(S_post))
     b0     <- G.inv%*%a0
     if(trend) b1 <- G.inv%*%a1 else b1 <- NULL
-    Ginv_large[irep,,] <- G.inv
+    Ginv_large[,,irep] <- G.inv
     
     ALPHA <- NULL
     for (kk in 1:plag){
       assign(paste("F",kk,sep=""),G.inv%*%get(paste("H",kk,sep="")))
-      F_large[irep,,,kk] <- get(paste("F",kk,sep=""))
-      ALPHA <- cbind(ALPHA,F_large[irep,,,kk])
+      F_large[,,kk,irep] <- get(paste("F",kk,sep=""))
+      ALPHA <- cbind(ALPHA,F_large[,,kk,irep])
     }
     
     ALPHA <- cbind(ALPHA,b0,b1)
@@ -989,7 +993,7 @@
     #   X_large         <- X_large[(plag+1):nrow(X_large),]
     #   globalLik[irep] <- .globalLik(Y=Y_large,X=X_large,Sig=G.inv%*%S_large[irep,,]%*%t(G.inv),ALPHA=ALPHA,bigT=bigT-plag)
     # }
-    setTxtProgressBar(pb, irep)
+    if(verbose) setTxtProgressBar(pb, irep)
   }
   
   # kick out in-stable draws
@@ -1023,32 +1027,39 @@
   bigK      <- ncol(xglobal)
   cN        <- names(globalpost)
   thindraws <- draws/thin
-  F_large   <- array(NA, dim=c(thindraws,bigK,bigK,plag))
+  F_large   <- array(NA, dim=c(bigK,bigK,plag,thindraws))
   trim.info <- "No trimming"
   
   ## call Rcpp
-  out <- gvar_stacking(xglobal_in=xglobal, plag_in=plag, globalpost_in=globalpost, draws_in=draws,
-                       thin_in=thin, trend_in=trend, eigen_in=TRUE, verbose_in=verbose)
+  # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
+  out <- gvar_stacking(xglobal    = xglobal, 
+                       plag       = as.integer(plag), 
+                       globalpost = globalpost, 
+                       draws      = as.integer(draws),
+                       thin       = as.integer(thin), 
+                       trend      = trend, 
+                       eigen      = TRUE, 
+                       verbose    = verbose)
   A_large    <- out$A_large
   for(pp in 1:plag){
-    F_large[,,,pp] <- out$F_large[,,((bigK*(pp-1))+1):(bigK*pp),drop=FALSE]
+    F_large[,,pp,] <- out$F_large[,((bigK*(pp-1))+1):(bigK*pp),,drop=FALSE]
   }
   S_large    <- out$S_large
   Ginv_large <- out$Ginv_large
   F.eigen    <- out$F_eigen
-  dimnames(S_large)[[2]]<-dimnames(S_large)[[3]]<-dimnames(Ginv_large)[[2]]<-dimnames(Ginv_large)[[3]]<-dimnames(A_large)[[2]]<-colnames(xglobal)
+  dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
   names <- c(paste(rep(colnames(xglobal),plag),".",rep(seq(1,plag),each=bigK),sep=""),"cons")
   if(trend) names <- c(names,"trend")
-  dimnames(A_large)[[3]]<-names
+  dimnames(A_large)[[2]]<-names
   
   # kick out in-stable draws
   if(eigen){
     idx<-which(F.eigen<trim)
     
-    F_large     <- F_large[idx,,,,drop=FALSE]
-    S_large     <- S_large[idx,,,drop=FALSE]
-    Ginv_large  <- Ginv_large[idx,,,drop=FALSE]
-    A_large     <- A_large[idx,,,drop=FALSE]
+    F_large     <- F_large[,,,idx,drop=FALSE]
+    S_large     <- S_large[,,idx,drop=FALSE]
+    Ginv_large  <- Ginv_large[,,idx,drop=FALSE]
+    A_large     <- A_large[,,idx,drop=FALSE]
     F.eigen     <- F.eigen[idx]
     
     if(length(idx)<10){
@@ -1278,7 +1289,7 @@
   condall <- 0
   impresp<-Q_bar<-NA
   while(condall == 0 && icounter < MaxTries){
-    Q <- matrix(0,bigK,bigK)
+    Q <- diag(bigK)
     for(cc in 1:N){
       idx <- shock.idx[[cc]]
       Kidx <- length(idx)
@@ -1310,13 +1321,11 @@
           }
         }
         Q[idx,idx] <- Qc
-      }else{
-        Q[idx,idx] <- diag(Kidx)
       }
     }
     colnames(Q) <- varNames[shock.order]; rownames(Q) <- varNames
-    Q <- Q[,varNames]
-    Q_bar <- Q%*%diag(((diag(Q)>0)-(diag(Q)<0)))
+    Q_bar <- Q[,varNames]
+    # Q_bar <- Q%*%diag(((diag(Q)>0)-(diag(Q)<0)))
     # check irf
     irf.check <- irf.restr%*%Q_bar
     colnames(irf.check) <- varNames
@@ -1454,4 +1463,38 @@
     fevda[,,ih]=fevda[,,ih]/denm
   }
   return(fevda)
+}
+
+#' @name .impulsdtrf
+#' @noRd
+.impulsdtrf <- function(B,smat,nstep){
+  
+  neq <- dim(B)[1]
+  nvar <- dim(B)[2]
+  lags <- dim(B)[3]
+  dimnB <- dimnames(B)
+  if(dim(smat)[2] != dim(B)[2]) stop("B and smat conflict on # of variables")
+  response <- array(0,dim=c(neq,nvar,nstep+lags-1));
+  response[ , , lags] <- smat
+  response <- aperm(response, c(1,3,2))
+  irhs <- 1:(lags*nvar)
+  ilhs <- lags * nvar + (1:nvar)
+  response <- matrix(response, ncol=neq)
+  B <- B[, , seq(from=lags, to=1, by=-1)]  #reverse time index to allow matrix mult instead of loop
+  B <- matrix(B,nrow=nvar)
+  for (it in 1:(nstep-1)) {
+    response[ilhs, ] <- B %*% response[irhs, ]
+    irhs <- irhs + nvar
+    ilhs <- ilhs + nvar
+  }
+  dim(response) <- c(nvar, nstep + lags - 1, nvar)
+  #drop the zero initial conditions; array in usual format
+  if(lags>1){
+    response<-response[,-(1:(lags-1)),]
+  }
+  response <- aperm(response, c(1, 3, 2))
+  dimnames(response) <- list(dimnB[[1]], dimnames(smat)[[2]], NULL)
+  ## dimnames(response)[2] <- dimnames(smat)[1]
+  ## dimnames(response)[1] <- dimnames(B)[2]
+  return(response)
 }

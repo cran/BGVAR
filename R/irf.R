@@ -61,10 +61,10 @@
 #' shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
 #' 
 #' # generalized impulse responses
-#' irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf", shockinfo=shockinfo)
+#' irf.girf.us.mp<-irf(model.eer, n.ahead=20, ident="girf", shockinfo=shockinfo)
 #' 
 #' # cholesky identification
-#' irf.chol.us.mp<-irf(model.eer, n.ahead=24, ident="chol", shockinfo=shockinfo)
+#' irf.chol.us.mp<-irf(model.eer, n.ahead=20, ident="chol", shockinfo=shockinfo)
 #' 
 #' # sign restrictions
 #' shockinfo <- get_shockinfo("sign")
@@ -72,37 +72,15 @@
 #' sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
 #' irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
 #' 
-#' # sign restrictions with relaxed cross-country restrictions
+#' \donttest{
+#' #' # sign restrictions with relaxed cross-country restrictions
 #' shockinfo <- get_shockinfo("sign")
 #' # restriction for other countries holds to 75\%
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","EA.y","UK.y"), 
 #'                            sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
 #'                            sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
-#' irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
-#' \donttest{
-#' # Example with zero restriction (Arias et al., 2018) and 
-#' # rationality conditions (D'Amico and King, 2017).
-#' data("eerDataspf")
-#' model.eer<-bgvar(Data=eerDataspf, W=W.trade0012.spf, draws=300, burnin=300,
-#'                  plag=1, prior="SSVS", eigen=TRUE)
-#' shockinfo <- get_shockinfo("sign")
-#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", 
-#'                            restriction=c("US.Dp_t+4","US.stir","US.y_t+4"),
-#'                            sign=c("<","0","<"), horizon=1, prob=1, scale=1)
-#' # rationality condition: US.stir_t+4 on impact is equal to average of 
-#' # IRF of US.stir between horizon 1 to 4
-#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.stir_t+4",
-#'                            sign="ratio.avg", horizon=5, prob=1, scale=1)
-#' # rationality condition: US.Dp_t+4 on impact is equal to IRF of US.Dp at horizon 4
-#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.Dp_t+4",
-#'                            sign="ratio.H", horizon=5, prob=1, scale=1)
-#' # rationality condition: US.y_t+4 on impact is equal to IRF of US.y at horizon 4
-#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.y_t+4",
-#'                            sign="ratio.H", horizon=5, prob=1, scale=1)
-#' # regulate maximum number of tries with expert settings
-#' irf.ratio <- irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo,
-#'                  expert=list(MaxTries=10))
+#' irf.sign.us.mp<-irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo)
 #' }
 #' @seealso \code{\link{bgvar}}, \code{\link{get_shockinfo}}, \code{\link{add_shockinfo}}
 #' @importFrom abind adrop abind
@@ -198,7 +176,10 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
       }
       shock.nr <- shock.nr-(sum(shockinfo$global)-1)
       scale.new <- rep(1,shock.nr)
-      shocknames <- c(paste0("Global.",unique(shock.var[shockinfo$global])), shocks[!shockinfo$global])
+      shocknames <- shocks
+      idx_global <- which(shockinfo$global)
+      shocknames[idx_global[1]] <- paste0("Global.",unique(shock.var[shockinfo$global]))
+      shocknames <- shocknames[-idx_global[c(2:length(idx_global))]]
       shock.global <- list()
       tt <- 1
       for(ss in 1:shock.nr){
@@ -214,7 +195,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
       }
       scale <- scale.new
     }
-    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag)
+    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag,MaxTries=MaxTries)
   }else if(ident=="girf")
   {
     if(verbose){
@@ -251,7 +232,10 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
       }
       shock.nr <- shock.nr-(sum(shockinfo$global)-1)
       scale.new <- rep(1,shock.nr)
-      shocknames <- c(paste0("Global.",unique(shock.var[shockinfo$global])), shocks[!shockinfo$global])
+      shocknames <- shocks
+      idx_global <- which(shockinfo$global)
+      shocknames[idx_global[1]] <- paste0("Global.",unique(shock.var[shockinfo$global]))
+      shocknames <- shocknames[-idx_global[c(2:length(idx_global))]]
       shock.global <- list()
       tt <- 1
       for(ss in 1:shock.nr){
@@ -267,7 +251,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
       }
       scale <- scale.new
     }
-    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag)
+    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag,MaxTries=MaxTries)
   }else if(ident=="sign")
   {
     # --------------- checks -------------------------------------------------#
@@ -300,7 +284,10 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
       }
       shock.nr <- shock.nr-(sum(shockinfo$global[!duplicated(shockinfo$shock)])-1)
       scale.new <- rep(1,shock.nr)
-      shocknames <- c(paste0("Global.",unique(shock.var[shockinfo$global])), shockinfo$shock[!shockinfo$global])
+      shocknames <- shocks
+      idx_global <- which(shockinfo$global)
+      shocknames[idx_global[1]] <- paste0("Global.",unique(shock.var[shockinfo$global]))
+      shocknames <- shocknames[-idx_global[c(2:length(idx_global))]]
       shock.global <- list()
       tt <- 1
       for(ss in 1:shock.nr){
@@ -438,8 +425,8 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
   if(is.null(cores)) cores <- 1
   #------------------------------ container -------------------------------------------------------#
   # initialize objects to save IRFs, HDs, etc.
-  R_store       <- array(NA, dim=c(thindraws,bigK,bigK), dimnames=list(NULL,colnames(xglobal),colnames(xglobal)))
-  IRF_store     <- array(NA, dim=c(thindraws,bigK,bigK,n.ahead+1), dimnames=list(NULL,colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead)))
+  R_store       <- array(NA, dim=c(bigK,bigK,thindraws), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
+  IRF_store     <- array(NA, dim=c(bigK,bigK,n.ahead+1,thindraws), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
   imp_posterior <- array(NA, dim=c(bigK,n.ahead+1,shock.nr,Q))
   dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocknames,paste0("Q",quantiles*100))
   #------------------------------ start computing irfs  ---------------------------------------------------#
@@ -451,9 +438,9 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     # r-version
     counter <- numeric(length=thindraws)
     imp.obj <- applyfun(1:thindraws,function(irep){
-      Ginv <- Ginv_large[irep,,]
-      Fmat <- adrop(F_large[irep,,,,drop=FALSE],drop=1)
-      Smat <- S_large[irep,,]
+      Ginv <- Ginv_large[,,irep]
+      Fmat <- adrop(F_large[,,,irep,drop=FALSE],drop=4)
+      Smat <- S_large[,,irep]
       imp.obj <- irf.fun(xdat=xdat,plag=plag,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist)
       if(verbose){
         if(ident=="sign"){
@@ -467,96 +454,86 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
       return(list(impl=imp.obj$impl,rot=imp.obj$rot,icounter=imp.obj$icounter))
     })
     for(irep in 1:thindraws){
-      IRF_store[irep,,,] <- imp.obj[[irep]]$impl
+      IRF_store[,,,irep] <- imp.obj[[irep]]$impl
       if(ident=="sign"){
-        R_store[irep,,] <- imp.obj[[irep]]$rot
+        R_store[,,irep] <- imp.obj[[irep]]$rot
         counter[irep]   <- imp.obj[[irep]]$icounter
       }
     }
   }else
   { # cpp-version
     #--------------------------------------------------------------
-    # set number of cores
-    if(is.numeric(cores)){
-      setThreadOptions(numThreads=cores)
-    }else if(is.character(cores)){
-      setThreadOptions(numThreads=ifelse(cores=="all",defaultNumThreads(),ifelse(cores=="half",defaultNumThreads(),1)))
-    }else{
-      setThreadOptions(numThreads=1)
-    }
     # adjust indexes due to different indexation (starting with zero in cpp)
     shocklist_cpp<-shocklist; shocklist_cpp$shock.idx<-lapply(shocklist_cpp$shock.idx,function(l)l-1)
     shocklist_cpp$shock.horz <- shocklist_cpp$shock.horz-1
     shocklist_cpp$shock.order <- shocklist_cpp$shock.order-1
     # type
     type <- ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
-    # compute impulse responses
-    temp = compute_irf_parallel(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
-    # temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
+    counter <- numeric(length=thindraws)
+    temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp,verbose=verbose)
     for(irep in 1:thindraws){
-      for(ihor in 1:(n.ahead+1)){
-        IRF_store[irep,,,ihor] = temp$irf[((ihor-1)*bigK+1):(bigK*ihor),,irep]
-      }
-      R_store[irep,,] <- temp$rot[,,irep]
-      if(temp$counter[irep] == MaxTries) IRF_store[irep,,,] <- NA
+      IRF_store[,,,irep] <- temp$irf[[irep]]
+      R_store[,,irep] <- temp$rot[[irep]]
+      counter[irep] <- temp$counter[irep,1]
+      if(temp$counter[irep,1] == MaxTries) IRF_store[,,,irep] <- NA_real_
     }
   }
   end.comp <- Sys.time()
   diff.comp <- difftime(end.comp,start.comp,units="mins")
   mins <- round(diff.comp,0); secs <- round((diff.comp-floor(diff.comp))*60,0)
-  if(verbose) cat(paste("\nImpulse response analysis took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste("\nImpulse response analysis took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.\n","seconds.\n"),sep=""))
   #------------------------------ post processing  ---------------------------------------------------#
   # re-set IRF object in case we have found only a few rotation matrices
   if(ident=="sign")
   {
-    idx<-which(!is.na(apply(IRF_store,1,sum)))
+    idx<-which(!is.na(apply(IRF_store,4,sum)))
     rot.nr<-paste("For ", length(idx), " draws out of ", thindraws, " draws, a rotation matrix has been found.")
     if(length(idx)==0){
       stop("No rotation matrix found with imposed sign restrictions. Please respecify.")
     }
     if(verbose) cat(rot.nr)
     # subset posterior draws
-    IRF_store <- IRF_store[idx,,,,drop=FALSE]
-    R_store   <- R_store[idx,,,drop=FALSE]
-    Ginv_large<-Ginv_large[idx,,,drop=FALSE]
-    A_large   <- A_large[idx,,,drop=FALSE]
-    S_large   <- S_large[idx,,,drop=FALSE]
+    IRF_store <- IRF_store[,,,idx,drop=FALSE]
+    R_store   <- R_store[,,idx,drop=FALSE]
+    Ginv_large<-Ginv_large[,,idx,drop=FALSE]
+    A_large   <- A_large[,,idx,drop=FALSE]
+    S_large   <- S_large[,,idx,drop=FALSE]
     thindraws <- length(idx)
   }
   # Subset to shocks under consideration
   if(Global){
     impulse <- NULL
     for(ss in 1:shock.nr){
-      temp <- apply(IRF_store[,,shock.global[[ss]],,drop=FALSE],c(1,2,4),sum)
-      Mean <- temp[,which(shock.global[[ss]])[1],1]
+      temp <- apply(IRF_store[,shock.global[[ss]],,,drop=FALSE],c(1,3,4),sum)
+      Mean <- temp[which(shock.global[[ss]])[1],1,]
       for(irep in 1:thindraws){
-        temp[irep,,]<-(temp[irep,,]/Mean[irep])*scale[ss]
+        temp[,,irep]<-(temp[,,irep]/Mean[irep])*scale[ss]
       }
       impulse <- abind(impulse,temp,along=4)
     }
-    IRF_store <- aperm(impulse,c(1,2,4,3))
-    dimnames(IRF_store)[[3]] <- names(shock.global)
+    IRF_store <- aperm(impulse,c(1,4,2,3))
+    dimnames(IRF_store)[[2]] <- names(shock.global)
   }else{
-    IRF_store <- IRF_store[,,select_shocks,,drop=FALSE]
+    IRF_store <- IRF_store[,select_shocks,,,drop=FALSE]
     for(ss in 1:shock.nr){
-      Mean<-IRF_store[,select_shocks[ss],ss,1]
+      Mean<-IRF_store[select_shocks[ss],ss,1,]
       for(irep in 1:thindraws){
-        IRF_store[irep,,ss,]<-(IRF_store[irep,,ss,]/Mean[irep])*scale[ss]
+        IRF_store[,ss,,irep]<-(IRF_store[,ss,,irep]/Mean[irep])*scale[ss]
       }
     }
   }
   # Normalization
   for(ss in 1:shock.nr){
     for(qq in 1:Q){
-      imp_posterior[,,ss,qq] <- apply(IRF_store[,,ss,],c(2,3),quantile,quantiles[qq],na.rm=TRUE)
+      imp_posterior[,,ss,qq] <- apply(IRF_store[,ss,,],c(1,2),quantile,quantiles[qq],na.rm=TRUE)
     }
   }
   # calculate objects needed for HD and struc shock functions later---------------------------------------------
   # median quantitities
-  A       <- apply(A_large,c(2,3),median)
-  Fmat    <- apply(F_large,c(2,3,4),median)
-  Ginv    <- apply(Ginv_large,c(2,3),median)
-  Smat    <- apply(S_large,c(2,3),median)
+  A       <- apply(A_large,c(1,2),median)
+  Fmat    <- apply(F_large,c(1,2,3),median)
+  Ginv    <- apply(Ginv_large,c(1,2),median)
+  Smat    <- apply(S_large,c(1,2),median)
   Sigma_u <- Ginv%*%Smat%*%t(Ginv)
   if(ident=="sign")
   {
@@ -717,7 +694,11 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
       shockinfo$shock[nt+nn] <- shock
       shockinfo$restriction[nt+nn] <- restriction[irep]
       shockinfo$sign[nt+nn] <- sign[irep]
-      shockinfo$horizon[nt+nn] <- seq(1,horizon[irep])[nn]
+      if(repetition == 1){
+        shockinfo$horizon[nt+nn] <- horizon[irep]
+      }else{
+        shockinfo$horizon[nt+nn] <- seq(1,horizon[irep])[nn]
+      }
       shockinfo$prob[nt+nn] <- prob[irep]
       shockinfo$scale[nt+nn] <- scale[irep]
       shockinfo$global[nt+nn] <- global[irep]

@@ -53,7 +53,7 @@ W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,
                 SV=TRUE,
                 thin=1,
                 trend=TRUE,
-                h=0,
+                hold.out=0,
                 eigen=1
                 )
 
@@ -100,12 +100,11 @@ model.ssvs.1$cc.results$PIP$PIP.cc$EA
 model.ssvs.1$cc.results$PIP$PIP.avg
 
 ## ----"var.weight"-------------------------------------------------------------
-eerData2<-eerData
 variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
 
 ## ----results="hide"-----------------------------------------------------------
 # weights for first variable set tradeW.0012, for second finW0711
-model.ssvs.2<-bgvar(Data=eerData2,
+model.ssvs.2<-bgvar(Data=eerData,
                     W=W.list[c("tradeW.0012","finW0711")],
                     plag=1,
                     draws=100,
@@ -135,6 +134,7 @@ model.ssvs.3<-bgvar(Data=eerData,
  print(model.ssvs.3)
 
 ## ----"OC"---------------------------------------------------------------------
+eerData2<-eerData
 eerData2$OC<-eerData$US[,c("poil"),drop=FALSE] # move oil prices into own slot
 eerData2$US<-eerData$US[,c("y","Dp", "rer" , "stir", "ltir","tb")] # exclude it from US m odel
 
@@ -268,8 +268,8 @@ irf.sign.zero<-irf(model.ssvs.eer, n.ahead=20, ident="sign", shockinfo=shockinfo
 ## ---- "eer.spf.plots",fig.cap="Rationality conditions I.",out.width="50%",fig.show="hold"----
 # rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
 # US.stir between horizon 2 and 5
-matplot(cbind(irf.sign.zero$IRF_store[1,"US.stir_t+4",1,],
-              irf.sign.zero$IRF_store[1,"US.stir",1,]),
+matplot(cbind(irf.sign.zero$IRF_store["US.stir_t+4",1,,1],
+              irf.sign.zero$IRF_store["US.stir",1,,1]),
         type="l",ylab="",main="stir",lwd=2,xaxt="n");
 axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24))
 legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
@@ -278,12 +278,12 @@ points(1,1,col="grey",pch=19,lwd=4)
 abline(v=c(2,5),lty=3,col="grey",lwd=2)
 # rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF 
 # of US.y in horizon 5
-matplot(cbind(irf.sign.zero$IRF_store[1,"US.y_t+4",1,],
-              irf.sign.zero$IRF_store[1,"US.y",1,]),
+matplot(cbind(irf.sign.zero$IRF_store["US.y_t+4",1,,1],
+              irf.sign.zero$IRF_store["US.y",1,,1]),
         type="l",ylab="",main="y",lwd=2,xaxt="n")
 axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24))
 legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
-yy<-irf.sign.zero$IRF_store[1,"US.y_t+4",1,1]
+yy<-irf.sign.zero$IRF_store["US.y_t+4",1,1,1]
 segments(x0=1,y0=yy,x1=5,y1=yy,lwd=2,lty=3,col="grey");abline(v=c(1,5),col="grey",lty=3)
 points(1,yy,col="grey",pch=19,lwd=4);points(5,yy,col="grey",pch=19,lwd=4)
 
@@ -305,8 +305,8 @@ OE.weights$EB$weights <- OE.weights$EB$weights[names(OE.weights$EB$weights)%in%E
 # estimates the model
 model.ssvs<-bgvar(Data=monthlyData,
                   W=W,
-                  draws=100,
-                  burnin=100,
+                  draws=200,
+                  burnin=200,
                   plag=1,
                   prior="SSVS",
                   eigen=1.05,
@@ -316,7 +316,7 @@ model.ssvs<-bgvar(Data=monthlyData,
 # imposes sign restrictions on the cross-section and for a global shock
 # (long-term interest rates)
 shockinfo<-get_shockinfo("sign")
-for(cc in c("AT","BE","ES","FI","FR")){
+for(cc in c("AT","BE","FR")){
   shockinfo<-add_shockinfo(shockinfo, shock=paste0(cc,".ltir"),
                            restriction=paste0(cc,c(".y",".p")),
                            sign=c("<","<"), horizon=c(1,1), 
@@ -328,7 +328,7 @@ for(cc in c("AT","BE","ES","FI","FR")){
 shockinfo
 
 ## ----"global.shock.irf",echo=TRUE,results="hide"------------------------------
-irf.sign.ssvs<-irf(model.ssvs, n.ahead=24, ident="sign", shockinfo=shockinfo)
+irf.sign.ssvs<-irf(model.ssvs, n.ahead=24, ident="sign", shockinfo=shockinfo, expert=list(MaxTries=500))
 
 ## ----"ea.sign.verify"---------------------------------------------------------
 irf.sign.ssvs$posterior[paste0(EA_countries[-c(3,12)],".ltir"),1,1,"Q50"]
@@ -354,11 +354,11 @@ barplot(t(cbind(own,foreign)),legend.text =c("own","foreign"))
 
 ## ---- "fevd.struc"------------------------------------------------------------
 # calculates FEVD for variables US.y
-fevd.us.y=fevd(irf.sign,var.slct=c("US.y"))$FEVD
+fevd.us.y=fevd(irf.chol.us.mp, var.slct=c("US.y"))$FEVD
 idx<-which(grepl("US.",rownames(fevd.us.y)))
 
 ## ---- "fevd.struc.plot",fig.cap="FEVD of US GDP.",out.width="50%"-------------
-barplot(fevd.us.y[idx,,])
+barplot(fevd.us.y[idx,1,])
 
 ## ----"hd"---------------------------------------------------------------------
 HD<-hd(irf.chol.us.mp)
@@ -370,16 +370,20 @@ matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2)
 legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n",cex=2)
 
 ## ----"fcast.est", results="hide"----------------------------------------------
+browser()
 model.ssvs.h8<-bgvar(Data=eerData,
                      W=W.trade0012,
+                     draws=500,
+                     burnin=500,
                      plag=1,
-                     draws=100,
-                     burnin=100,
                      prior="SSVS",
-                     SV=TRUE
-                     ,eigen=1.05,
+                     hyperpara=NULL, 
+                     SV=TRUE,
+                     thin=1,
                      trend=TRUE,
-                     hold.out=8)
+                     hold.out=8,
+                     eigen=1
+                     )
 
 ## ----"fcast.predict", results="hide"------------------------------------------
 fcast <- predict(model.ssvs.h8, n.ahead=8, save.store=TRUE)

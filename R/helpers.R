@@ -100,21 +100,24 @@ avg.pair.cc=function(object, digits=3){
     
     dat.res[1,i]<-paste(length(which(aux<=0.1))," (",round((length(which(aux<=0.1))/K)*100,2),"%)",sep="")
     res.res[1,i]<-paste(length(which(aux2<=0.1))," (",round((length(which(aux2<=0.1))/K2)*100,2),"%)",sep="")
-    res.resG[1,i]<-paste(length(which(aux3<=0.1))," (",round((length(which(aux3<=0.1))/K3)*100,2),"%)",sep="")
+    temp<-round((length(which(aux3<=0.1))/K3)*100,2)
+    res.resG[1,i]<-paste(length(which(aux3<=0.1))," (",ifelse(is.nan(temp),0,1),"%)",sep="")
     
     dat.res[2,i]<-paste(length(which(aux>0.1&aux<=0.2))," (",round((length(which(aux>0.1&aux<=0.2))/K)*100,2),"%)",sep="")
     res.res[2,i]<-paste(length(which(aux2>0.1&aux2<=0.2))," (",round((length(which(aux2>0.1&aux2<=0.2))/K2)*100,2),"%)",sep="")
-    res.resG[2,i]<-paste(length(which(aux3>0.1&aux2<=0.2))," (",round((length(which(aux3>0.1&aux3<=0.2))/K3)*100,2),"%)",sep="")
-    
+    temp<-round((length(which(aux3>0.1&aux3<=0.2))/K3)*100,2)
+    res.resG[2,i]<-paste(length(which(aux3>0.1&aux2<=0.2))," (",ifelse(is.nan(temp),0,1),"%)",sep="")
     
     dat.res[3,i]<-paste(length(which(aux>0.2&aux<=0.5))," (",round((length(which(aux>0.2&aux<=0.5))/K)*100,2),"%)",sep="")
     res.res[3,i]<-paste(length(which(aux2>0.2&aux2<=0.5))," (",round((length(which(aux2>0.2&aux2<=0.5))/K2)*100,2),"%)",sep="")
-    res.resG[3,i]<-paste(length(which(aux3>0.2&aux3<=0.5))," (",round((length(which(aux3>0.2&aux3<=0.5))/K3)*100,2),"%)",sep="")
+    temp<-round((length(which(aux3>0.2&aux3<=0.5))/K3)*100,2)
+    res.resG[3,i]<-paste(length(which(aux3>0.2&aux3<=0.5))," (",ifelse(is.nan(temp),0,temp),"%)",sep="")
     
     
     dat.res[4,i]<-paste(length(which(aux>0.5&aux<=1))," (",round((length(which(aux>0.5&aux<=1))/K)*100,2),"%)",sep="")
     res.res[4,i]<-paste(length(which(aux2>0.5&aux2<=1))," (",round((length(which(aux2>0.5&aux2<=1))/K2)*100,2),"%)",sep="")
-    res.resG[4,i]<-paste(length(which(aux3>0.5&aux3<=1))," (",round((length(which(aux3>0.5&aux3<=1))/K3)*100,2),"%)",sep="")
+    temp<-round((length(which(aux3>0.5&aux3<=1))/K3)*100,2)
+    res.resG[4,i]<-paste(length(which(aux3>0.5&aux3<=1))," (",ifelse(is.nan(temp),0,temp),"%)",sep="")
     
   }
   colnames(dat.res) <- colnames(res.res) <- colnames(res.resG) <- colnames(datL)
@@ -156,23 +159,24 @@ conv.diag<-function(object, crit.val=1.96){
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
   
   ALPHA <- object$stacked.results$A_large
+  draws <- dim(ALPHA)[3]
   d1    <- dim(ALPHA)[1]
   d2    <- dim(ALPHA)[2]
-  d3    <- dim(ALPHA)[3]
-  K     <- d2*d1
+  K     <- d1*d2
   
-  mcmc.obj<-NULL
+  geweke.z<-NULL
   for(i in 1:d1){
-    aux<-NULL
     for(j in 1:d2){
-      aux<-cbind(aux,ALPHA[i,j,])
+      mcmc.obj<-mcmc(ALPHA[i,j,])
+      geweke<-try(geweke.diag(mcmc.obj),silent=TRUE)
+      if(!is(geweke,"try-error")){
+        geweke.z<-c(geweke.z,as.numeric(geweke$z))
+      }else{
+        K<-K-1
+      }
     }
-    mcmc.obj<-cbind(mcmc.obj,aux)
   }
-  mcmc.obj<-mcmc(mcmc.obj)
-  geweke<-geweke.diag(mcmc.obj)
-  geweke.z<-as.numeric(unlist(geweke$z)) # if z is smaller or greater than 1.96 there is evidence that the means of both distributions are different
-  idx<-which(abs(geweke.z)>crit.val)
+  idx<-which(abs(geweke.z)>crit.val) # if z is smaller or greater than 1.96 there is evidence that the means of both distributions are different
   xx<-paste(length(idx), " out of ",K, " variables' z-values exceed the 1.96 threshold", " (", round(length(idx)/K*100,2),"%).",sep="")
   return <- structure(list(geweke.z=geweke.z,perc=xx), class="bgvar.CD")
   return(return)
@@ -220,9 +224,9 @@ DIC <- function(object, ...){
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large
     globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
-    A_mean     <- apply(A_large,c(2,3),mean)
-    S_mean     <- apply(S_large,c(2,3),mean)
-    Ginv_mean  <- apply(Ginv_large,c(2,3),mean)
+    A_mean     <- apply(A_large,c(1,2),mean)
+    S_mean     <- apply(S_large,c(1,2),mean)
+    Ginv_mean  <- apply(Ginv_large,c(1,2),mean)
     
     Dbar <- -2*mean(globalLik,na.rm=TRUE)
     pD   <- Dbar+2*sum(dmvnrm_arma_fast(Y_large,X_large%*%t(A_mean),Ginv_mean%*%S_mean%*%t(Ginv_mean),TRUE))
