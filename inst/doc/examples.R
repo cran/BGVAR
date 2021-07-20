@@ -89,7 +89,7 @@ plot(model.1, global=FALSE, resp="EA")
                      SV=TRUE,
                      thin=1,
                      trend=TRUE,
-                     h=0,
+                     hold.out=0,
                      eigen=1
                      )
 

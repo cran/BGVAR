@@ -1,4 +1,4 @@
-a6b2d207a1177e5f1e4c88db2fa94164 *DESCRIPTION
+cbfee4b63c60d28b08ed59438e637501 *DESCRIPTION
 624ff79566a7f2e5244fa161a3187f6a *NAMESPACE
 a01b486dadb2913d11f73f6fa8499f04 *NEWS
 63cf54029cb4ab98e63f31ab53bfc8d9 *R/BGVAR.R
@@ -20,9 +20,9 @@ c0d6ef7398207f335f45a842200d70fb *data/eerDataspf.rda
 e2438e22226cf46a804409aec5d997ae *data/monthlyData.rda
 fe14a040fa63c7dbced49d8b4cd3a65f *data/pesaranData.rda
 c3faeb4ec581c68e6894c4c513a12227 *inst/CITATION
-79b2b6a7186a7e7c66e3534efab5e4dd *inst/doc/examples.R
-a2f641f0ce9ba6b304dbdac26a5c9365 *inst/doc/examples.Rmd
-fdd80e51b749bdfe4ea129540ffef4e8 *inst/doc/examples.html
+4aa81c4f1b469f847a27def8808289ff *inst/doc/examples.R
+f1907c2b2d34474880711e5c2a9b245b *inst/doc/examples.Rmd
+bf52b5268b55bc525c4acc567af72a3a *inst/doc/examples.html
 a30253ab52c0de49c3d6842615e3c88e *inst/include/BGVAR.h
 4bbf388fe9cea2e4fc1e83ac2f0a7444 *inst/include/BGVAR_RcppExports.h
 bfd55ce4633e0a101883faa8aa7aba41 *man/BGVAR-package.Rd
@@ -60,13 +60,13 @@ a01f2f959a4dcf83dc38433dffc9d1a3 *src/Makevars.win
 7349194b12f3af3c57f9cfc96258db87 *src/RcppExports.cpp
 524444df7762555eed955960e8cbb707 *src/do_rgig1.cpp
 20b3949a703ffc4bf76427aa8e3dd82e *src/do_rgig1.h
-9d0646ab6e1d60615a71ab0e86b38d20 *src/gvar_stacking.cpp
+9572b13974b5d4c5211b5b1bdc38be2e *src/gvar_stacking.cpp
 efa2375318c54996d91d8a3a19c1ee23 *src/helper.cpp
 6484636df707de628fae9fd99c7e35d6 *src/helper.h
 c2914339d1590cf44ca03f887c28b488 *src/irf.cpp
 4de6554d5208110c772a8cf231d87784 *tests/testthat.R
 d41d8cd98f00b204e9800998ecf8427e *tests/testthat/test-BGVAR.R
 076297be17162483e4cce404d3dd3493 *vignettes/ecb.png
-a2f641f0ce9ba6b304dbdac26a5c9365 *vignettes/examples.Rmd
+f1907c2b2d34474880711e5c2a9b245b *vignettes/examples.Rmd
 d9de3a7c98858947807f0a0efb4c1d30 *vignettes/fullbib.bib
 2fbed5226f87375e8c42bf48526ceca9 *vignettes/oil.png
