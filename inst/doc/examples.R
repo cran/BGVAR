@@ -42,6 +42,23 @@ W.trade0012<-W.trade0012[cN,cN]
 W.trade0012<-apply(W.trade0012,2,function(x)x/rowSums(W.trade0012))
 W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
 
+## ---- "export excel", eval=FALSE----------------------------------------------
+#  time <- as.character(seq.Date(as.Date("1995-01-01"),as.Date("2013-10-01"),by="quarter"))
+#  
+#  for(cc in 1:length(eerData)){
+#    x <- coredata(eerData[[cc]])
+#    rownames(x) <- time
+#    write.xlsx(x = x, file="./excel_eerData.xlsx", sheetName = names(eerData)[cc],
+#               col.names=TRUE, row.names=TRUE, append=TRUE)
+#  }
+
+## ---- "import excel", eval=FALSE----------------------------------------------
+#  eerData_read <- excel_to_list(file = "./excel_eerData.xlsx", first_column_as_time=TRUE, skipsheet=NULL, ...)
+
+## ---- "transform to matrix", eval=FALSE---------------------------------------
+#  eerData_matrix <- list_to_matrix(eerData_read)
+#  eerData_list <- matrix_to_list(eerData_matrix)
+
 ## ----"model.1",results="hide"-------------------------------------------------
  model.1<-bgvar(Data=eerData,
                 W=W.trade0012,
