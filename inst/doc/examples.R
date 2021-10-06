@@ -191,15 +191,15 @@ heatmap(aux3,Rowv=NA,Colv=NA, main="Model 3")
 heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4")
 
 ## ---- "shocks", results="hide"------------------------------------------------
-irf.girf<-irf(model.ssvs.1, n.ahead=24, ident="girf", expert=list(save.store=FALSE))
+irf.chol<-irf(model.ssvs.1, n.ahead=24, expert=list(save.store=FALSE))
 
 ## ----"us.mp", results="hide"--------------------------------------------------
 # US monetary policy shock - Cholesky
-shockinfo_chol<-get_shockinfo()
+shockinfo_chol<-get_shockinfo("chol")
 shockinfo_chol$shock<-"US.stir"
 shockinfo_chol$scale<--100
 # US monetary policy shock - GIRF
-shockinfo_girf<-get_shockinfo()
+shockinfo_girf<-get_shockinfo("girf")
 shockinfo_girf$shock<-"US.stir"
 shockinfo_girf$scale<--100
 
@@ -208,7 +208,7 @@ shockinfo_chol
 shockinfo_girf
 
 ## ---- "us.mp.chol", results="hide"--------------------------------------------
-irf.chol.us.mp<-irf(model.ssvs.1, n.ahead=24, ident="chol", shockinfo=shockinfo_chol, expert=list(save.store=TRUE))
+irf.chol.us.mp<-irf(model.ssvs.1, n.ahead=24, shockinfo=shockinfo_chol, expert=list(save.store=TRUE))
 
 ## ---- "us.mp2"----------------------------------------------------------------
 names(irf.chol.us.mp)
@@ -217,13 +217,18 @@ names(irf.chol.us.mp)
 plot(irf.chol.us.mp, resp="US", shock="US.stir")
 
 ## ---- "us.gdp", results="hide"------------------------------------------------
-shockinfo<-get_shockinfo("chol", nr_rows = 2)
-shockinfo$shock<-c("US.stir","US.y")
-shockinfo$scale<-c(1,1)
+# cholesky
+shockinfo_chol       <- get_shockinfo("chol", nr_rows = 2)
+shockinfo_chol$shock <- c("US.stir","US.y")
+shockinfo_chol$scale <- c(1,1)
+# generalized impulse responses
+shockinfo_girf       <- get_shockinfo("girf", nr_rows = 2)
+shockinfo_girf$shock <- c("US.stir","US.y")
+shockinfo_girf$scale <- c(1,1)
 # Recursive US GDP
-irf.chol.us.y<-irf(model.ssvs.1, n.ahead=24, ident="chol", shockinfo=shockinfo)
+irf.chol.us.y<-irf(model.ssvs.1, n.ahead=24, shockinfo=shockinfo_chol)
 # GIRF US GDP
-irf.girf.us.y<-irf(model.ssvs.1, n.ahead=24, ident="girf", shockinfo=shockinfo)
+irf.girf.us.y<-irf(model.ssvs.1, n.ahead=24, shockinfo=shockinfo_girf)
 
 ## ---- "us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%"----
 plot(irf.chol.us.y, resp="US.y", shock="US.y")
@@ -236,18 +241,22 @@ shockinfo<-get_shockinfo("girf", nr_rows = 3)
 shockinfo$shock<-c("EA.y","US.y","RU.y")
 shockinfo$global<-TRUE
 shockinfo$scale<--1
-irf.global<-irf(model.ssvs.1, n.ahead=24, ident="girf", shockinfo=shockinfo)
+irf.global<-irf(model.ssvs.1, n.ahead=24, shockinfo=shockinfo)
 plot(irf.global, resp=c("US.y","EA.y","RU.y"), shock="Global.y")
 
 ## ---- hide=TRUE---------------------------------------------------------------
-data("eerDataspf")
-eerDataspf<-eerDataspf[cN]
-W.trade0012.spf<-W.trade0012.spf[cN,cN]
-W.trade0012.spf<-apply(W.trade0012.spf,2,function(x)x/rowSums(W.trade0012.spf))
+data("eerData")
+eerData<-eerData[cN]
+W.trade0012<-W.trade0012[cN,cN]
+W.trade0012<-apply(W.trade0012,2,function(x)x/rowSums(W.trade0012))
+# append expectations data to US model
+temp <- cbind(USexpectations, eerData$US)
+colnames(temp) <- c(colnames(USexpectations),colnames(eerData$US))
+eerData$US <- temp
 
 ## ---- "us.spf", results="hide"------------------------------------------------
-model.ssvs.eer<-bgvar(Data=eerDataspf,
-                      W=W.trade0012.spf,
+model.ssvs.eer<-bgvar(Data=eerData,
+                      W=W.trade0012,
                       plag=1,
                       draws=100,
                       burnin=100,
@@ -262,7 +271,7 @@ shockinfo<-add_shockinfo(shockinfo, shock="US.Dp",
                          restriction="US.y", sign="<", horizon=1, prob=1, scale=1)
 
 ## ---- "us.spf.sign",message=FALSE, results="hide"-----------------------------
-irf.sign<-irf(model.ssvs.eer, n.ahead=24, ident="sign", shockinfo=shockinfo, 
+irf.sign<-irf(model.ssvs.eer, n.ahead=24, shockinfo=shockinfo, 
               expert=list(MaxTries=100, save.store=FALSE, cores=NULL))
 
 ## ---- "us.spf.sign2"----------------------------------------------------------
@@ -279,7 +288,7 @@ shockinfo<-add_shockinfo(shockinfo, shock="US.stir_t+4",
                          sign=c("<","0","<","ratio.avg","ratio.H","ratio.H"),
                          horizon=c(1,1,1,5,5,5),
                          prob=1, scale=1)
-irf.sign.zero<-irf(model.ssvs.eer, n.ahead=20, ident="sign", shockinfo=shockinfo, 
+irf.sign.zero<-irf(model.ssvs.eer, n.ahead=20, shockinfo=shockinfo, 
                    expert=list(MaxTries=100, save.store=TRUE))
 
 ## ---- "eer.spf.plots",fig.cap="Rationality conditions I.",out.width="50%",fig.show="hold"----
@@ -345,7 +354,7 @@ for(cc in c("AT","BE","FR")){
 shockinfo
 
 ## ----"global.shock.irf",echo=TRUE,results="hide"------------------------------
-irf.sign.ssvs<-irf(model.ssvs, n.ahead=24, ident="sign", shockinfo=shockinfo, expert=list(MaxTries=500))
+irf.sign.ssvs<-irf(model.ssvs, n.ahead=24, shockinfo=shockinfo, expert=list(MaxTries=500))
 
 ## ----"ea.sign.verify"---------------------------------------------------------
 irf.sign.ssvs$posterior[paste0(EA_countries[-c(3,12)],".ltir"),1,1,"Q50"]
@@ -507,19 +516,22 @@ plot(cond_fcast2, resp="US.Dp", cut=10)
 #    data(eerData)
 #    model.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
 #  
+#    # generalized impulse responses
+#    shockinfo<-get_shockinfo("girf")
+#    shockinfo$shock<-"US.stir"; shockinfo$scale<--100
+#  
+#    irf.girf.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+#  
+#    # cholesky identification
 #    shockinfo<-get_shockinfo("chol")
 #    shockinfo$shock<-"US.stir"; shockinfo$scale<--100
 #  
-#    # generalized impulse responses
-#    irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf", shockinfo=shockinfo)
-#  
-#    # cholesky identification
-#    irf.chol.us.mp<-irf(model.eer, n.ahead=24, ident="chol", shockinfo=shockinfo)
+#    irf.chol.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 #    # sign restrictions
 #    shockinfo <- get_shockinfo("sign")
 #    shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"),
 #                               sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
-#    irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
+#    irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 #  
 #    # sign restrictions with relaxed cross-country restrictions
 #    shockinfo <- get_shockinfo("sign")
@@ -528,7 +540,7 @@ plot(cond_fcast2, resp="US.Dp", cut=10)
 #                               sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
 #    shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
 #                               sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
-#    irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
+#    irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 #  
 #    # Example with zero restriction (Arias et al., 2018) and
 #    # rationality conditions (D'Amico and King, 2017).
@@ -550,7 +562,7 @@ plot(cond_fcast2, resp="US.Dp", cut=10)
 #    shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.y_t+4",
 #                               sign="ratio.H", horizon=5, prob=1, scale=1)
 #    # regulate maximum number of tries with expert settings
-#    irf.ratio <- irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo,
+#    irf.ratio <- irf(model.eer, n.ahead=20, shockinfo=shockinfo,
 #                     expert=list(MaxTries=10))
 
 ## ---- hide=TRUE---------------------------------------------------------------

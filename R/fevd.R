@@ -21,14 +21,14 @@
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,prior="MN",
+#' data(testdata)
+#' model.eer<-bgvar(Data=testdata,W=W.test,prior="MN",
 #'                  draws=100,burnin=50,plag=1,eigen=TRUE)
 #'                       
 #' # US monetary policy shock
 #' shockinfo <- get_shockinfo("chol")
 #' shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
-#' irf.chol.us.mp<-irf(model.eer,n.ahead=48,ident="chol",shockinfo=shockinfo)
+#' irf.chol.us.mp<-irf(model.eer,n.ahead=48,shockinfo=shockinfo)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -38,7 +38,7 @@
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", 
 #'                            restriction=c("US.y","US.Dp"), 
 #'                            sign=c("<","<"), horizon=c(1,1), 1, 100)
-#' irf.sign.us.mp<-irf(model.eer,n.ahead=24,ident="sign",shockinfo=shockinfo)
+#' irf.sign.us.mp<-irf(model.eer,n.ahead=24,shockinfo=shockinfo)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -187,8 +187,8 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
 #' @examples 
 #' \dontshow{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100,
+#' data(testdata)
+#' model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100,
 #'                  plag=1, prior="SSVS", eigen=TRUE)
 #'                       
 #' GFEVD<-gfevd(model.eer, n.ahead=24)

@@ -23,14 +23,14 @@
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100, 
+#' data(testdata)
+#' model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100, 
 #'                  plag=1, prior="SSVS", eigen=TRUE)
 #'                  
 #' # US monetary policy shock
 #' shockinfo <- get_shockinfo("chol")
 #' shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
-#' irf.chol.us.mp<-irf(model.eer,n.ahead=48,ident="chol",shockinfo=shockinfo)
+#' irf.chol.us.mp<-irf(model.eer,n.ahead=48,shockinfo=shockinfo)
 #' 
 #' # calculates historical decomposition
 #' HD <- hd(irf.chol.us.mp)
