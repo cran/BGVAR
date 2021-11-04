@@ -405,7 +405,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
         if(length(idx) == 0) next
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
-        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        if(cumulative){x<-apply(x,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -416,8 +416,8 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
         segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
         axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
-        axisindex<-seq(1,nrow(x),length.out=8)
-        axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
+        axisindex<-seq(1,nrow(x),by=4)
+        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=1.6,tick=FALSE)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -433,7 +433,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
         if(length(idx) == 0) next
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
-        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        if(cumulative){x<-apply(x,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -444,8 +444,8 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
         segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
         axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
-        axisindex<-seq(1,nrow(x),length.out=8)
-        axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
+        axisindex<-seq(1,nrow(x),by=4)
+        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=1.6,tick=FALSE)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -459,7 +459,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
         if(length(idx)==0) next
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
-        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        if(cumulative){x<-apply(x,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -470,8 +470,8 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
         segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
         axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
-        axisindex<-seq(1,nrow(x),length.out=8)
-        axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
+        axisindex<-seq(1,nrow(x),by=4)
+        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=1.6,tick=FALSE)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -483,7 +483,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
     for(kk in 1:Ki){
       idx <- ridx[kk]
       x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
-      if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+      if(cumulative){x<-apply(x,2,cumsum)}
       b <- range(x);b1<-b[1];b2<-rev(b)[1]
       plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
               lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -494,8 +494,8 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
       lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
       segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
       axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
-      axisindex<-seq(1,nrow(x),length.out=8)
-      axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
+      axisindex<-seq(1,nrow(x),by=4)
+      axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=1.6,tick=FALSE)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
   }else{

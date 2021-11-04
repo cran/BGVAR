@@ -317,23 +317,26 @@ plot(model.1, global=FALSE, resp="EA")
 
 We can estimate the model with two further priors on the unit models, the SSVS prior and the Minnesota prior. To give a concrete example, the SSVS prior can be invoked by typing:
 ```{r "ssvs.1",echo=TRUE, results="hide"}
- model.ssvs.1<-bgvar(Data=eerData,
-                     W=W.trade0012,
-                     draws=100,
-                     burnin=100,
-                     plag=1,
-                     prior="SSVS",
-                     hyperpara=NULL, 
-                     SV=TRUE,
-                     thin=1,
-                     trend=TRUE,
-                     hold.out=0,
-                     eigen=1
-                     )
+model.ssvs.1<-bgvar(Data=eerData,
+                    W=W.trade0012,
+                    draws=100,
+                    burnin=100,
+                    plag=1,
+                    prior="SSVS",
+                    hyperpara=NULL, 
+                    SV=TRUE,
+                    thin=1,
+                    Ex=NULL,
+                    trend=TRUE,
+                    expert=list(save.shrink.store=TRUE),
+                    hold.out=0,
+                    eigen=1,
+                    verbose=TRUE
+                    )
 ```
 
 <p align="justify">
-One feature of the SSVS prior is that it allows us to look at the posterior inclusion probabilities to gauge the importance of particular variables. For example, we can have a look at the PIPs of the euro area model by typing:
+One feature of the SSVS prior is that it allows us to look at the posterior inclusion probabilities to gauge the importance of particular variables. Per default, `bgvar` does not save the volatilities of the coefficients to save memory. If we set `expert=list(save.shrink.store=TRUE)` to `TRUE` (default is `FALSE`) then those probabilities are saved and posterior inclusion probabilities (PIPs) are computed. For example, we can have a look at the PIPs of the euro area model by typing:
 </p>
 
 ```{r "Pips"}
@@ -383,7 +386,7 @@ model.ssvs.2<-bgvar(Data=eerData,
                     prior="SSVS",
                     SV=TRUE,
                     eigen=1,
-                    expert=list(variable.list=variable.list),
+                    expert=list(variable.list=variable.list,save.shrink.store=TRUE),
                     trend=TRUE
                     )
 ```
@@ -403,7 +406,7 @@ model.ssvs.3<-bgvar(Data=eerData,
                     prior="SSVS",
                     SV=TRUE,
                     eigen=1,
-                    expert=list(Wex.restr="ltir"),
+                    expert=list(Wex.restr="ltir",save.shrink.store=TRUE),
                     trend=TRUE,
                     )
 ```
@@ -464,7 +467,7 @@ model.ssvs.4<-bgvar(Data=eerData2,
                     burnin=100,
                     prior="SSVS",
                     SV=TRUE,
-                    expert=list(OE.weights=OE.weights),
+                    expert=list(OE.weights=OE.weights,save.shrink.store=TRUE),
                     trend=TRUE
                     )
 ```
@@ -488,7 +491,7 @@ heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4")
 We could also compare the models based on their fit, the likelihood, information criteria such as the DIC, residual properties or their forecasting performance. 
 </p>
 
-\section{Impulse response functions}
+\section{Impulse Response Functions}
 # Impulse response functions
 <p align="justify">
 The package allows to calculate three different ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in @Pesaran1998, orthogonalized impulse response functions using a Cholesky decomposition of the variance covariance matrix and finally impulse response functions given a set of user-specified sign restrictions.
@@ -730,7 +733,7 @@ We can look at the data by typing:
 data(monthlyData);monthlyData$OC<-NULL
 names(monthlyData)
 # list of weights of other entities with same name as additional country model
-OE.weights = list(EB=EA.weights)
+OE.weights = list(EB=EB.weights)
 EA_countries <- c("AT", "BE", "DE","ES", "FI","FR")
                   # "IE", "IT", "NL", "PT","GR","SK","MT","CY","EE","LT","LV")
 ```
@@ -766,7 +769,7 @@ We can now impose a joint shock on long-term interest rates for selected countri
 shockinfo<-get_shockinfo("sign")
 for(cc in c("AT","BE","FR")){
   shockinfo<-add_shockinfo(shockinfo, shock=paste0(cc,".ltir"),
-                           restriction=paste0(cc,c(".y",".p")),
+                           restriction=paste0(cc,c(".ip",".p")),
                            sign=c("<","<"), horizon=c(1,1), 
                            prob=c(0.5,0.5), scale=c(-100,-100),
                            global=TRUE)
@@ -791,16 +794,16 @@ To verify the sign restrictions, type:
 
 ```{r,"ea.sign.verify"}
 irf.sign.ssvs$posterior[paste0(EA_countries[-c(3,12)],".ltir"),1,1,"Q50"]
-irf.sign.ssvs$posterior[paste0(EA_countries,".y"),1,1,"Q50"]
+irf.sign.ssvs$posterior[paste0(EA_countries,".ip"),1,1,"Q50"]
 irf.sign.ssvs$posterior[paste0(EA_countries,".p"),1,1,"Q50"]
 ```
 
 The following plots the output responses for selected euro area countries.
 ```{r, "ea.sign.plots",fig.show="hold",out.width="25%",fig.cap="Output responses of selected euro area countries."}
-plot(irf.sign.ssvs, resp=c("AT.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("BE.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("DE.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("ES.y"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("AT.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("BE.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("DE.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("ES.ip"), shock="Global.ltir")
 ```
   
 
@@ -865,8 +868,6 @@ matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2)
 legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n",cex=2)
 ```
 
-
-
 \section{Unconditional and Conditional Forecasts}
 # Unconditional and Conditional Forecasts
 <p align="justify">
@@ -882,7 +883,6 @@ Since the GVAR framework was developed to capture cross-country dependencies, it
 To compute forecasts with the `BGVAR` package, we use the command `predict`. To be able to evaluate the forecast, we have to specify the size of the hold-out sample when estimating the model. Here, we choose a hold-out-sample of 8 observations by setting `h=8` (the default values is `h=0`):   
 </p>
 ```{r,"fcast.est", results="hide"}
-browser()
 model.ssvs.h8<-bgvar(Data=eerData,
                      W=W.trade0012,
                      draws=500,
@@ -932,7 +932,7 @@ Similar to structural analysis, it is possible to use conditional forecasts, ide
 
 ```{r "cond.predict",results="hide"}
 # matrix with constraints
-constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.1$xglobal))
+constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.h8$xglobal))
 colnames(constr) <- colnames(model.ssvs.h8$xglobal)
 # set "US.Dp" for five periods on its last value
 constr[1:5,"US.Dp"] <-model.ssvs.h8$xglobal[nrow(model.ssvs.h8$xglobal),"US.Dp"]
@@ -964,7 +964,7 @@ with `Cut` denoting the number of realized data points that should be shown in t
 
 \section{Appendix}
 # Appendix
-\subsection{Main Function bgvar}
+\subsection{Main Function: `bgvar`}
 ## Function Arguments `bgvar`
 Main arguments and description of the function `bgvar`.
 
@@ -1114,8 +1114,8 @@ model.ng<-bgvar(Data=monthlyData,
 ```
 
 
-\subsection{irf() Function}
-## Function Arguments `irf()` 
+\subsection{Main Function `irf`}
+## Function Arguments `irf` 
 
 * `x`: An objected fitted by function `bgvar`.
 

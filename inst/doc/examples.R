@@ -96,19 +96,22 @@ yfit <- fitted(model.1)
 plot(model.1, global=FALSE, resp="EA")
 
 ## ----"ssvs.1",echo=TRUE, results="hide"---------------------------------------
- model.ssvs.1<-bgvar(Data=eerData,
-                     W=W.trade0012,
-                     draws=100,
-                     burnin=100,
-                     plag=1,
-                     prior="SSVS",
-                     hyperpara=NULL, 
-                     SV=TRUE,
-                     thin=1,
-                     trend=TRUE,
-                     hold.out=0,
-                     eigen=1
-                     )
+model.ssvs.1<-bgvar(Data=eerData,
+                    W=W.trade0012,
+                    draws=100,
+                    burnin=100,
+                    plag=1,
+                    prior="SSVS",
+                    hyperpara=NULL, 
+                    SV=TRUE,
+                    thin=1,
+                    Ex=NULL,
+                    trend=TRUE,
+                    expert=list(save.shrink.store=TRUE),
+                    hold.out=0,
+                    eigen=1,
+                    verbose=TRUE
+                    )
 
 ## ----"Pips"-------------------------------------------------------------------
 model.ssvs.1$cc.results$PIP$PIP.cc$EA
@@ -129,7 +132,7 @@ model.ssvs.2<-bgvar(Data=eerData,
                     prior="SSVS",
                     SV=TRUE,
                     eigen=1,
-                    expert=list(variable.list=variable.list),
+                    expert=list(variable.list=variable.list,save.shrink.store=TRUE),
                     trend=TRUE
                     )
 
@@ -143,7 +146,7 @@ model.ssvs.3<-bgvar(Data=eerData,
                     prior="SSVS",
                     SV=TRUE,
                     eigen=1,
-                    expert=list(Wex.restr="ltir"),
+                    expert=list(Wex.restr="ltir",save.shrink.store=TRUE),
                     trend=TRUE,
                     )
 
@@ -174,7 +177,7 @@ model.ssvs.4<-bgvar(Data=eerData2,
                     burnin=100,
                     prior="SSVS",
                     SV=TRUE,
-                    expert=list(OE.weights=OE.weights),
+                    expert=list(OE.weights=OE.weights,save.shrink.store=TRUE),
                     trend=TRUE
                     )
 
@@ -317,7 +320,7 @@ points(1,yy,col="grey",pch=19,lwd=4);points(5,yy,col="grey",pch=19,lwd=4)
 data(monthlyData);monthlyData$OC<-NULL
 names(monthlyData)
 # list of weights of other entities with same name as additional country model
-OE.weights = list(EB=EA.weights)
+OE.weights = list(EB=EB.weights)
 EA_countries <- c("AT", "BE", "DE","ES", "FI","FR")
                   # "IE", "IT", "NL", "PT","GR","SK","MT","CY","EE","LT","LV")
 
@@ -344,7 +347,7 @@ model.ssvs<-bgvar(Data=monthlyData,
 shockinfo<-get_shockinfo("sign")
 for(cc in c("AT","BE","FR")){
   shockinfo<-add_shockinfo(shockinfo, shock=paste0(cc,".ltir"),
-                           restriction=paste0(cc,c(".y",".p")),
+                           restriction=paste0(cc,c(".ip",".p")),
                            sign=c("<","<"), horizon=c(1,1), 
                            prob=c(0.5,0.5), scale=c(-100,-100),
                            global=TRUE)
@@ -358,14 +361,14 @@ irf.sign.ssvs<-irf(model.ssvs, n.ahead=24, shockinfo=shockinfo, expert=list(MaxT
 
 ## ----"ea.sign.verify"---------------------------------------------------------
 irf.sign.ssvs$posterior[paste0(EA_countries[-c(3,12)],".ltir"),1,1,"Q50"]
-irf.sign.ssvs$posterior[paste0(EA_countries,".y"),1,1,"Q50"]
+irf.sign.ssvs$posterior[paste0(EA_countries,".ip"),1,1,"Q50"]
 irf.sign.ssvs$posterior[paste0(EA_countries,".p"),1,1,"Q50"]
 
 ## ---- "ea.sign.plots",fig.show="hold",out.width="25%",fig.cap="Output responses of selected euro area countries."----
-plot(irf.sign.ssvs, resp=c("AT.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("BE.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("DE.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("ES.y"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("AT.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("BE.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("DE.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("ES.ip"), shock="Global.ltir")
 
 ## ---- "fevd"------------------------------------------------------------------
 #calculates the LN GFEVD 
@@ -396,7 +399,6 @@ matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2)
 legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n",cex=2)
 
 ## ----"fcast.est", results="hide"----------------------------------------------
-browser()
 model.ssvs.h8<-bgvar(Data=eerData,
                      W=W.trade0012,
                      draws=500,
@@ -423,7 +425,7 @@ plot(fcast, resp="US.Dp", cut=8)
 
 ## ----"cond.predict",results="hide"--------------------------------------------
 # matrix with constraints
-constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.1$xglobal))
+constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.h8$xglobal))
 colnames(constr) <- colnames(model.ssvs.h8$xglobal)
 # set "US.Dp" for five periods on its last value
 constr[1:5,"US.Dp"] <-model.ssvs.h8$xglobal[nrow(model.ssvs.h8$xglobal),"US.Dp"]
