@@ -1,10 +1,10 @@
-378f9af5150cc6b7e682bc5a1edf0324 *DESCRIPTION
+5ee07211c4f0ad4cab4f26cb070bd0a6 *DESCRIPTION
 8e6c7a3b4c8e318e3f78e5d2f18dbb9b *NAMESPACE
-efda8f0b11a66d0f3e27711d78890733 *NEWS
+c28e03795dcdb16604cc74a05d292764 *NEWS
 c42a81954d3798d0a5c0031c348ff9a6 *R/BGVAR.R
 450110480ee2a0e1eee644446ff69d1d *R/RcppExports.R
-23fb43818a7ac9f55486ea99156a379b *R/bgvar-package.R
-9376656c3ccecc72aa709fa2cb84e819 *R/fevd.R
+afb55ebcbae9e43356987486aef32b4a *R/bgvar-package.R
+31f83366230358335bd831f6b3c04c74 *R/fevd.R
 95ed041b49ff302938002a3a08d0b5ee *R/hd.R
 4c3f80e4ede342a68b3deb76f88c4395 *R/helpers.R
 b35d9ad8f332ca9931ad10ac9358e3f9 *R/irf.R
@@ -43,7 +43,7 @@ e327d30fe464af89a855222f98fa232a *man/list_to_matrix.Rd
 1d0343d0468a1b30b8ff0b5ce870a702 *man/logLik.Rd
 9335462bc9f39d6a76c480df2789fcba *man/lps.Rd
 f9d0754254afbf02db689fb90654efa2 *man/matrix_to_list.Rd
-b2883b4dcbfdcdc132d1cd5148c8aa01 *man/monthlyData.Rd
+479b4f6cd3548aae1f6f1b5589d8b3b9 *man/monthlyData.Rd
 c94fe87f95b1483ba8973c5f02334432 *man/pesaranData.Rd
 c428605cfd2d01974622dbf4f8edbe56 *man/plot.Rd
 9644e9881fdfc470e172eb45c1ee4f38 *man/predict.Rd
