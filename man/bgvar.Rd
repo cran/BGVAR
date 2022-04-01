@@ -15,13 +15,13 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 
 \item{W}{An N times N weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices.}
 
-\item{plag}{Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.}
+\item{plag}{Number of lags used. Either a single value for domestic and weakly exogenous, or a vector of length two. Default set to \code{plag=1}.}
 
 \item{draws}{Number of retained draws. Default set to \code{draws=5000}.}
 
 \item{burnin}{Number of burn-ins. Default set to \code{burnin=5000}.}
 
-\item{prior}{Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior or \code{NG} for the Normal-Gamma prior. See Details below.}
+\item{prior}{Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior, \code{NG} for the Normal-Gamma prior or \code{HS} for the Horseshoe prior. See Details below.}
 
 \item{SV}{If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.}
 
@@ -58,6 +58,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
       \item{\code{tau_theta}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of \code{tau_theta=1} would lead to the Bayesian LASSO. Default value differs per entity and set to \code{tau_theta=1/log(M)}, where \code{M} is the number of endogenous variables per entity.}
       \item{\code{sample_tau}}{ If set to \code{TRUE} \code{tau_theta} is sampled.}
       }}
+\item{"HS":}{No additional hyperparameter need to be elicited for the horseshoe prior.}
  }}
 
 \item{eigen}{Set to TRUE if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If \code{eigen} is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to 1.05 (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than 1.05 in modulus).}
@@ -76,7 +77,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 \item{\code{variables}}{ Vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
 \item{\code{exo}}{ Vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
 }}
-\item{\code{Wex.restr}}{ Character vector containing variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
+\item{\code{Wex.restr}}{ Character vector containing variables that should be excluded from being used as weakly exogenous from all unit models. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
 \item{\code{save.country.store}}{ If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
 \item{\code{save.shrink.store}}{If set to \code{TRUE} the function also inspects posterior output of shrinkage coefficients. Default set to \code{FALSE}.}
 \item{\code{save.vola.store}}{If set to \code{TRUE} the function also inspects posterior output of coefficients associated with the volatility process. Default set to \code{FALSE}.}
@@ -142,12 +143,14 @@ model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, d
 print(model.mn)
 
 data(monthlyData)
-EA.weights$variables <- c("EAstir","total.assets","M3","ciss","y","p")
-OC.weights$variables <- c("poil","qoil","y")
-OE.weights <- list(EB=EA.weights,OC=OC.weights)
+cN = names(EB.weights$weights)
+Data = monthlyData[c(cN,"EB","OC")]
+W = W[cN,cN]
+OC.weights$weights = OC.weights$weights[cN]
+OE.weights <- list(EB=EB.weights, OC=OC.weights)
 hyperpara<-list(d_lambda = 0.01, e_lambda = 0.01,e_lambda=1.5,d_lambda=1, 
                 prmean=0,a_1=0.01,b_1=0.01,tau_theta=.6,sample_tau=FALSE)
-model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
+model.ssvs <- bgvar(Data=Data,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
                     hyperpara=hyperpara,eigen=TRUE,SV=TRUE,expert=list(OE.weights=OE.weights))
 print(model.ssvs)
 }

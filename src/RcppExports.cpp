@@ -15,14 +15,14 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // BVAR_linear
-List BVAR_linear(arma::mat Yraw, arma::mat Wraw, arma::mat Exraw, int plag, int draws, int burnin, int thin, bool cons, bool trend, bool sv, int prior, Rcpp::List hyperparam, Rcpp::List setting_store);
-static SEXP _BGVAR_BVAR_linear_try(SEXP YrawSEXP, SEXP WrawSEXP, SEXP ExrawSEXP, SEXP plagSEXP, SEXP drawsSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP consSEXP, SEXP trendSEXP, SEXP svSEXP, SEXP priorSEXP, SEXP hyperparamSEXP, SEXP setting_storeSEXP) {
+List BVAR_linear(arma::mat Yraw, arma::mat Wraw, arma::mat Exraw, arma::uvec lags, int draws, int burnin, int thin, bool cons, bool trend, bool sv, int prior, Rcpp::List hyperparam, Rcpp::List setting_store);
+static SEXP _BGVAR_BVAR_linear_try(SEXP YrawSEXP, SEXP WrawSEXP, SEXP ExrawSEXP, SEXP lagsSEXP, SEXP drawsSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP consSEXP, SEXP trendSEXP, SEXP svSEXP, SEXP priorSEXP, SEXP hyperparamSEXP, SEXP setting_storeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< arma::mat >::type Yraw(YrawSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type Wraw(WrawSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type Exraw(ExrawSEXP);
-    Rcpp::traits::input_parameter< int >::type plag(plagSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type lags(lagsSEXP);
     Rcpp::traits::input_parameter< int >::type draws(drawsSEXP);
     Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
     Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
@@ -32,15 +32,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type prior(priorSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type hyperparam(hyperparamSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type setting_store(setting_storeSEXP);
-    rcpp_result_gen = Rcpp::wrap(BVAR_linear(Yraw, Wraw, Exraw, plag, draws, burnin, thin, cons, trend, sv, prior, hyperparam, setting_store));
+    rcpp_result_gen = Rcpp::wrap(BVAR_linear(Yraw, Wraw, Exraw, lags, draws, burnin, thin, cons, trend, sv, prior, hyperparam, setting_store));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _BGVAR_BVAR_linear(SEXP YrawSEXP, SEXP WrawSEXP, SEXP ExrawSEXP, SEXP plagSEXP, SEXP drawsSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP consSEXP, SEXP trendSEXP, SEXP svSEXP, SEXP priorSEXP, SEXP hyperparamSEXP, SEXP setting_storeSEXP) {
+RcppExport SEXP _BGVAR_BVAR_linear(SEXP YrawSEXP, SEXP WrawSEXP, SEXP ExrawSEXP, SEXP lagsSEXP, SEXP drawsSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP consSEXP, SEXP trendSEXP, SEXP svSEXP, SEXP priorSEXP, SEXP hyperparamSEXP, SEXP setting_storeSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_BGVAR_BVAR_linear_try(YrawSEXP, WrawSEXP, ExrawSEXP, plagSEXP, drawsSEXP, burninSEXP, thinSEXP, consSEXP, trendSEXP, svSEXP, priorSEXP, hyperparamSEXP, setting_storeSEXP));
+        rcpp_result_gen = PROTECT(_BGVAR_BVAR_linear_try(YrawSEXP, WrawSEXP, ExrawSEXP, lagsSEXP, drawsSEXP, burninSEXP, thinSEXP, consSEXP, trendSEXP, svSEXP, priorSEXP, hyperparamSEXP, setting_storeSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -122,8 +122,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // compute_irf
-Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in, const bool verbose);
-RcppExport SEXP _BGVAR_compute_irf(SEXP A_largeSEXP, SEXP S_largeSEXP, SEXP Ginv_largeSEXP, SEXP typeSEXP, SEXP nhorSEXP, SEXP thindrawsSEXP, SEXP shocklist_inSEXP, SEXP verboseSEXP) {
+Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in, const bool save_rot, const bool verbose);
+RcppExport SEXP _BGVAR_compute_irf(SEXP A_largeSEXP, SEXP S_largeSEXP, SEXP Ginv_largeSEXP, SEXP typeSEXP, SEXP nhorSEXP, SEXP thindrawsSEXP, SEXP shocklist_inSEXP, SEXP save_rotSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -134,8 +134,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type nhor(nhorSEXP);
     Rcpp::traits::input_parameter< const int >::type thindraws(thindrawsSEXP);
     Rcpp::traits::input_parameter< const SEXP >::type shocklist_in(shocklist_inSEXP);
+    Rcpp::traits::input_parameter< const bool >::type save_rot(save_rotSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_irf(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in, verbose));
+    rcpp_result_gen = Rcpp::wrap(compute_irf(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in, save_rot, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -144,7 +145,7 @@ END_RCPP
 static int _BGVAR_RcppExport_validate(const char* sig) { 
     static std::set<std::string> signatures;
     if (signatures.empty()) {
-        signatures.insert("List(*BVAR_linear)(arma::mat,arma::mat,arma::mat,int,int,int,int,bool,bool,bool,int,Rcpp::List,Rcpp::List)");
+        signatures.insert("List(*BVAR_linear)(arma::mat,arma::mat,arma::mat,arma::uvec,int,int,int,bool,bool,bool,int,Rcpp::List,Rcpp::List)");
     }
     return signatures.find(sig) != signatures.end();
 }
@@ -162,7 +163,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BGVAR_gvar_stacking", (DL_FUNC) &_BGVAR_gvar_stacking, 8},
     {"_BGVAR_globalLik", (DL_FUNC) &_BGVAR_globalLik, 6},
     {"_BGVAR_dmvnrm_arma_fast", (DL_FUNC) &_BGVAR_dmvnrm_arma_fast, 4},
-    {"_BGVAR_compute_irf", (DL_FUNC) &_BGVAR_compute_irf, 8},
+    {"_BGVAR_compute_irf", (DL_FUNC) &_BGVAR_compute_irf, 9},
     {"_BGVAR_RcppExport_registerCCallable", (DL_FUNC) &_BGVAR_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}
 };

@@ -9,10 +9,10 @@
 #' \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 #' }
 #' @param W An N times N weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices. 
-#' @param plag Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.
+#' @param plag Number of lags used. Either a single value for domestic and weakly exogenous, or a vector of length two. Default set to \code{plag=1}.
 #' @param draws Number of retained draws. Default set to \code{draws=5000}.
 #' @param burnin Number of burn-ins. Default set to \code{burnin=5000}.
-#' @param prior Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior or \code{NG} for the Normal-Gamma prior. See Details below.
+#' @param prior Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior, \code{NG} for the Normal-Gamma prior or \code{HS} for the Horseshoe prior. See Details below.
 #' @param SV If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.
 #' @param hold.out Defines the hold-out sample. Default without hold-out sample, thus set to zero.
 #' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.
@@ -50,6 +50,7 @@
 #'       \item{\code{tau_theta}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of \code{tau_theta=1} would lead to the Bayesian LASSO. Default value differs per entity and set to \code{tau_theta=1/log(M)}, where \code{M} is the number of endogenous variables per entity.}
 #'       \item{\code{sample_tau}}{ If set to \code{TRUE} \code{tau_theta} is sampled.}
 #'       }}
+#' \item{"HS":}{No additional hyperparameter need to be elicited for the horseshoe prior.}
 #'  }
 #' @param eigen Set to TRUE if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If \code{eigen} is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to 1.05 (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than 1.05 in modulus).
 #' @param expert Expert settings, must be provided as list. Default is set to \code{NULL}.\itemize{
@@ -59,7 +60,7 @@
 #' \item{\code{variables}}{ Vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
 #' \item{\code{exo}}{ Vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
 #' }}
-#' \item{\code{Wex.restr}}{ Character vector containing variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
+#' \item{\code{Wex.restr}}{ Character vector containing variables that should be excluded from being used as weakly exogenous from all unit models. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
 #' \item{\code{save.country.store}}{ If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
 #' \item{\code{save.shrink.store}}{If set to \code{TRUE} the function also inspects posterior output of shrinkage coefficients. Default set to \code{FALSE}.}
 #' \item{\code{save.vola.store}}{If set to \code{TRUE} the function also inspects posterior output of coefficients associated with the volatility process. Default set to \code{FALSE}.}
@@ -117,12 +118,14 @@
 #' print(model.mn)
 #' 
 #' data(monthlyData)
-#' EA.weights$variables <- c("EAstir","total.assets","M3","ciss","y","p")
-#' OC.weights$variables <- c("poil","qoil","y")
-#' OE.weights <- list(EB=EA.weights,OC=OC.weights)
+#' cN = names(EB.weights$weights)
+#' Data = monthlyData[c(cN,"EB","OC")]
+#' W = W[cN,cN]
+#' OC.weights$weights = OC.weights$weights[cN]
+#' OE.weights <- list(EB=EB.weights, OC=OC.weights)
 #' hyperpara<-list(d_lambda = 0.01, e_lambda = 0.01,e_lambda=1.5,d_lambda=1, 
 #'                 prmean=0,a_1=0.01,b_1=0.01,tau_theta=.6,sample_tau=FALSE)
-#' model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
+#' model.ssvs <- bgvar(Data=Data,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
 #'                     hyperpara=hyperpara,eigen=TRUE,SV=TRUE,expert=list(OE.weights=OE.weights))
 #' print(model.ssvs)
 #' }
@@ -161,6 +164,8 @@
 #' @importFrom zoo coredata
 bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out=0,thin=1,hyperpara=NULL,
                 eigen=TRUE,Ex=NULL,trend=FALSE,expert=NULL,verbose=TRUE){
+  Sys.setenv(LANGUAGE='en')
+  if(verbose) cat("\014")
   start.bgvar <- Sys.time()
   #--------------------------------- checks  ------------------------------------------------------#
   if(!is.list(Data) & !is.matrix(Data) & is.data.frame(Data)){
@@ -180,7 +185,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(any(is.na(plag))){
     stop("Please specify number of lags.")
   }
-  if(length(plag)>1 || plag<1){
+  if(!length(plag)%in%c(1,2)){
     stop("Please specify number of lags accordingly. One lag length parameter for the whole model.")
   }
   if(!is.numeric(draws) | !is.numeric(burnin)){
@@ -188,6 +193,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   }
   if(length(draws)>1 || draws<0 || length(burnin)>1 || burnin<0){
     stop("Please specify number of draws and burnin accordingly. One draws and burnin parameter for the whole model.")
+  }
+  if(!prior%in%c("MN","SSVS","NG","HS")){
+    stop("Please selecte one of the following prior options: MN, SSVS, NG, or HS.")
   }
   #-------------------------- expert settings -------------------------------------------------------#
   # expert settings
@@ -208,15 +216,18 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   save.country.store <- expert.list$save.country.store
   save.shrink.store  <- expert.list$save.shrink.store
   save.vola.store    <- expert.list$save.vola.store
-  #-------------------------- construct arglist ----------------------------------------------------#
+  # construct args
   args <- .construct.arglist(bgvar)
-  if(verbose){
-    cat("Start estimation of Bayesian Global Vector Autoregression.\n\n")
-    cat(paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior","Normal-Gamma prior")),".\n",sep=""))
-    cat(paste("Lag order: ",plag,"\n",sep=""))
-    cat(paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""))
-    cat(paste("Number of cores used: ", ifelse(is.null(cores),1,cores),".\n",sep=""))
-  }
+  # specify lags
+  if(length(plag)==1) lags <- rep(plag,2) else lags <- plag
+  args$lags <- lags
+  #-------------------------- construct arglist ----------------------------------------------------#
+  printtext <- paste0("\n\nStart estimation of Bayesian Global Vector Autoregression.\n\n",
+                      paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior",ifelse(prior=="NG","Normal-Gamma prior","Horseshoe prior"))),".\n",sep=""),
+                      paste("Lag order: ",lags[1]," (endo.), ",lags[2]," (w. exog.)","\n",sep=""),
+                      paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""),
+                      paste("Number of cores used: ", ifelse(is.null(cores),1,cores),".\n",sep=""))
+  if(verbose) cat(printtext)
   #------------------------------ user checks  ---------------------------------------------------#
   # check Data
   if(is.matrix(Data)){
@@ -373,12 +384,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     }
   }
   args$Ex <- Ex
-  # check prior
-  if(!prior%in% c("MN","SSVS","NG")){
-    stop("Please selecte one of the following prior options: MN, SSVS or NG")
-  }
   # check thinning factor
   if(thin<1){
+    printtext <- paste0(printtext, paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep=""))
     if(verbose) cat(paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep=""))
     thin <- round(1/thin,2)
   }
@@ -390,6 +398,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     }else{
     thin_mess <- paste("Thinning factor: ", thin,". This means every ",ifelse(thin==1,"",ifelse(thin==2,paste(thin,"nd ",sep=""),ifelse(thin==3,paste(thin,"rd ",sep=""),paste(thin,"th ",sep="")))),"draw is saved.\n",sep="")
   }
+  printtext <- paste0(printtext,thin_mess)
   if(verbose) cat(thin_mess)
   args$thin <- thin
   args$thindraws <- draws/thin
@@ -403,6 +412,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3",
                  "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","d_lambda","e_lambda","tau_theta","sample_tau","tau_log")
   if(is.null(hyperpara)){
+    printtext <- paste0(printtext, "\t No hyperparameters are chosen, default setting applied.\n")
     if(verbose) cat("\t No hyperparameters are chosen, default setting applied.\n")
   }
   if(!is.null(hyperpara)){
@@ -414,10 +424,11 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       default_hyperpara[para] <- hyperpara[para]
       if(para=="tau_theta") default_hyperpara["tau_log"] <- FALSE
     }
+    printtext <- paste0(printtext, "Default values for chosen hyperparamters overwritten.\n")
     if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
   }
   # store setting
-  setting_store <- list(shrink_MN = FALSE, shrink_SSVS = FALSE, shrink_NG = FALSE,
+  setting_store <- list(shrink_MN = FALSE, shrink_SSVS = FALSE, shrink_NG = FALSE, shrink_HS = FALSE,
                         vola_pars = FALSE)
   if(expert.list$save.shrink.store)
     setting_store[[paste0("shrink_",prior)]] <- TRUE
@@ -433,6 +444,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   #---------------------------------hold out sample------------------------------------------------------------#
   args$yfull <- xglobal
   xglobal    <- xglobal[1:(nrow(xglobal)-hold.out),,drop=FALSE]
+  if(!is.null(Ex)){
+    Ex <- lapply(Ex,function(l)l[1:(nrow(l)-hold.out),,drop=FALSE])
+  }
   args$time  <- args$time[1:(length(args$time)-hold.out)]
   #------------------------------ prepare applyfun --------------------------------------------------------#
   if(is.null(applyfun)) {
@@ -451,17 +465,22 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   }
   if(is.null(cores)) {cores <- 1}
   #------------------------------ estimate BVAR ---------------------------------------------------------------#
-  if(verbose) cat("\nEstimation of country models starts... ")
+  # define constant
+  printtext <- paste0(printtext,"\nEstimation of country models starts...")
+  if(verbose) cat("\nEstimation of country models starts...")
   # Rcpp::sourceCpp("./src/BVAR_linear.cpp")
   start.estim <- Sys.time()
   globalpost <- applyfun(1:N, function(cc){
-    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex,use_R=use_R,setting_store=setting_store)
+    if(verbose) cat("\f",printtext,"\nModel: ",cc,"/",N," done.")
+    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,lags=lags,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex,use_R=use_R,setting_store=setting_store)
   })
+  cat("\014")
+  cat(printtext)
   names(globalpost) <- cN
   end.estim <- Sys.time()
   diff.estim <- difftime(end.estim,start.estim,units="mins")
   mins <- round(diff.estim,0); secs <- round((diff.estim-floor(diff.estim))*60,0)
-  if(verbose) cat(paste(" took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste("\nEstimation done and took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.","seconds.\n"),sep=""))
   #--------------------------- stacking part for global model -----------------------------------------------------#
   if(is.logical(eigen)){
     if(eigen){trim<-1.05}else{trim<-NULL}
@@ -470,7 +489,8 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   }
   if(verbose) cat("Start stacking: \n")
   # insert stacking function here
-  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=plag,globalpost=globalpost,draws=draws,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
+  # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
+  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=max(lags),globalpost=globalpost,draws=draws,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
   if(!is.null(trim)) {args$thindraws <- length(stacked.results$F.eigen)}
   if(verbose) cat("\nStacking finished.\n")
   if(verbose) cat(paste0("Computation of BGVAR yields ",args$thindraws," (",round(args$thindraws/(draws/thin),2)*100,"%) draws (",
@@ -493,13 +513,15 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       wex0 <- c(paste(varx[wex],"*",sep=""))
     }
     wexL <- endoL <- c()
-    for(pp in 1:plag){
+    for(pp in 1:lags[1]){
+      endoL  <- c(endoL,paste(varx[endo],"_lag",pp,sep=""))
+    }
+    for(pp in 1:lags[2]){
       if(length(exx)>0){
         wexL <- c(wexL, paste(varx[wex],"*_lag",pp,sep=""), paste(varx[exx],"**_lag",pp,sep=""))
       }else{
         wexL   <- c(wexL, paste(varx[wex],"*_lag",pp,sep=""))
       }
-      endoL  <- c(endoL,paste(varx[endo],"_lag",pp,sep=""))
     }
     if(cN[cc]%in%names(Ex)){
       tex <- colnames(Ex[[cN[cc]]])
@@ -561,7 +583,9 @@ print.bgvar<-function(x, ...){
                              ifelse(x$args$prior=="SSVS","Stochastic Search Variable Selection prior (SSVS)",
                                     "Normal-Gamma prior (NG)")),sep=""))
   cat("\n")
-  cat(paste("Number of lags: ",x$args$plag,sep=""))
+  cat(paste("Number of lags for endogenous variables: ",x$args$lags[1],sep=""))
+  cat("\n")
+  cat(paste("Number of lags for weakly exogenous variables: ",x$args$lags[2],sep=""))
   cat("\n")
   cat(paste("Number of posterior draws: ",x$args$draws,"/",x$args$thin,"=",floor(x$args$draws/x$args$thin),sep=""))
   cat("\n")
@@ -630,7 +654,9 @@ print.bgvar.summary <- function(x, ...){
                              ifelse(x$object$args$prior=="SSVS","Stochastic Search Variable Selection prior (SSVS)",
                                     "Normal-Gamma prior (NG)")),sep=""))
   cat("\n")
-  cat(paste("Number of lags: ",x$object$args$plag,sep=""))
+  cat(paste("Number of lags for endogenous variables: ",x$args$lags[1],sep=""))
+  cat("\n")
+  cat(paste("Number of lags for weakly exogenous variables: ",x$args$lags[2],sep=""))
   cat("\n")
   cat(paste("Number of posterior draws: ",x$object$args$draws,"/",x$object$args$thin,"=",x$object$args$draws/x$object$args$thin,sep=""))
   cat("\n")
@@ -699,17 +725,18 @@ residuals.bgvar <- function(object, ...){
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
   G.mat   <- object$stacked.results$Ginv_large
   A.mat   <- object$stacked.results$A_large
-  plag    <- object$args$plag
+  lags    <- object$args$lags
+  pmax    <- max(lags)
   draws   <- object$args$thindraws
   time    <- object$args$time
   trend   <- object$args$trend
   xglobal <- object$xglobal
-  YY      <- xglobal[(plag+1):nrow(xglobal),]
-  XX      <- cbind(.mlag(xglobal,plag),1)
-  XX      <- XX[(plag+1):nrow(XX),]
+  YY      <- xglobal[(pmax+1):nrow(xglobal),]
+  XX      <- cbind(.mlag(xglobal,pmax),1)
+  XX      <- XX[(pmax+1):nrow(XX),]
   if(trend) XX <- cbind(XX,seq(1,nrow(XX)))
   
-  rownames(YY) <- as.character(time[-c(1:plag)])
+  rownames(YY) <- as.character(time[-c(1:pmax)])
   res.array.country<-res.array.global<-array(0,dim=c(draws,dim(YY)))
   for(irep in 1:draws){
     res.array.global[irep,,]  <- (YY-XX%*%t(A.mat[,,irep]))
@@ -807,12 +834,13 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 #' }
 #' @export
 fitted.bgvar<-function(object, ..., global=TRUE){
-  plag     <- object$args$plag
+  lags     <- object$args$lags
+  pmax     <- max(lags)
   xglobal  <- object$xglobal
   trend    <- object$args$trend
-  XX       <- .mlag(xglobal,plag)
-  YY       <- xglobal[-c(1:plag),,drop=FALSE]
-  XX       <- cbind(XX[-c(1:plag),,drop=FALSE],1)
+  XX       <- .mlag(xglobal,pmax)
+  YY       <- xglobal[-c(1:pmax),,drop=FALSE]
+  XX       <- cbind(XX[-c(1:pmax),,drop=FALSE],1)
   bigT     <- nrow(YY)
   if(trend) XX <- cbind(XX,seq(1,bigT))
   if(global){
@@ -848,15 +876,16 @@ logLik.bgvar<-function(object, ..., quantile=.50){
   temp <- object$args$logLik
   if(is.null(temp)){
     xglobal   <- object$xglobal
-    plag      <- object$args$plag
+    lags      <- object$args$lags
+    pmax      <- max(lags)
     trend     <- object$args$trend
     bigT      <- nrow(xglobal)
     bigK      <- ncol(xglobal)
     thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,plag),1)
+    X_large   <- cbind(.mlag(xglobal,pmax),1)
     if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(plag+1):bigT,,drop=FALSE]
+    Y_large   <- xglobal[(pmax+1):bigT,,drop=FALSE]
+    X_large   <- X_large[(pmax+1):bigT,,drop=FALSE]
     A_large   <- object$stacked.results$A_large
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large
@@ -916,15 +945,16 @@ dic.bgvar <- function(object, ...){
     out <- object$args$dic
   }else{
     xglobal   <- object$xglobal
-    plag      <- object$args$plag
+    lags      <- object$args$lags
+    pmax      <- max(lags)
     trend     <- object$args$trend
     bigT      <- nrow(xglobal)
     bigK      <- ncol(xglobal)
     thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,plag),1)
+    X_large   <- cbind(.mlag(xglobal,pmax),1)
     if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(plag+1):bigT,,drop=FALSE]
+    Y_large   <- xglobal[(pmax+1):bigT,,drop=FALSE]
+    X_large   <- X_large[(pmax+1):bigT,,drop=FALSE]
     A_large   <- object$stacked.results$A_large
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large

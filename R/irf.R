@@ -33,7 +33,7 @@
 #' }}
 #' \item{\code{model.obj}}{ List object that contains model-specific information, in particular\itemize{
 #' \item{\code{xglobal}}{ Data of the model.}
-#' \item{\code{plag}}{ Lag specification of the model.}
+#' \item{\code{lags}}{ Lag specification of the model.}
 #' }}
 #' \item{\code{IRF_store}}{ Four-dimensional array (K times n.ahead times number of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.store=TRUE}.}
 #' \item{\code{R_store}}{ Three-dimensional array (K times K times draws) which stores all rotation matrices. Exists only if \code{save.store=TRUE}.}
@@ -65,6 +65,7 @@
 #' shockinfo$shock<-"US.stir"; shockinfo$scale<--100
 #' 
 #' irf.chol.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+#' 
 #' # sign restrictions
 #' shockinfo <- get_shockinfo("sign")
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 
@@ -117,11 +118,12 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   #-----------------------------------------------------------------------------------------------------------#
   if(verbose) cat("Start computing impulse response functions of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
-  plag        <- x$args$plag
+  lags        <- x$args$lags
+  pmax        <- max(lags)
   xglobal     <- x$xglobal
   Traw        <- nrow(xglobal)
   bigK        <- ncol(xglobal)
-  bigT        <- Traw-plag
+  bigT        <- Traw-pmax
   A_large     <- x$stacked.results$A_large
   F_large     <- x$stacked.results$F_large
   S_large     <- x$stacked.results$S_large
@@ -132,7 +134,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   if(!is.null(shockinfo)) Global <- ifelse(any(shockinfo$global),TRUE,FALSE)
   Rmed        <- NULL
   rot.nr      <- NULL
-  xdat        <- xglobal[(plag+1):Traw,,drop=FALSE]
+  xdat        <- xglobal[(pmax+1):Traw,,drop=FALSE]
   varNames    <- colnames(xdat)
   cN          <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
   vars        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
@@ -205,7 +207,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       }
       scale <- scale.new
     }
-    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag,MaxTries=MaxTries)
+    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=pmax,MaxTries=MaxTries)
   }else if(ident=="girf")
   {
     if(verbose){
@@ -261,7 +263,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       }
       scale <- scale.new
     }
-    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag,MaxTries=MaxTries)
+    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=pmax,MaxTries=MaxTries)
   }else if(ident=="sign")
   {
     # --------------- checks -------------------------------------------------#
@@ -415,7 +417,8 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     }
     #---------------------------------------------------------------------------
     shocklist <- list(shock.idx=shock.idx,shock.cidx=shock.cidx,MaxTries=MaxTries,S.cube=S.cube,Z.cube=Z.cube,P.cube=P.cube,
-                      shock.order=shock.order,shock.horz=sign.horizon,plag=plag,no.zero.restr=no.zero.restr)
+                      shock.order=shock.order,shock.horz=sign.horizon,plag=pmax,no.zero.restr=no.zero.restr)
+    rm(S.cube,Z.cube,P.cube)
   }
   #------------------------------ prepare applyfun --------------------------------------------------------#
   if(is.null(applyfun)) {
@@ -435,8 +438,12 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   if(is.null(cores)) cores <- 1
   #------------------------------ container -------------------------------------------------------#
   # initialize objects to save IRFs, HDs, etc.
-  R_store       <- array(NA, dim=c(bigK,bigK,thindraws), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
-  IRF_store     <- array(NA, dim=c(bigK,bigK,n.ahead+1,thindraws), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
+  if(ident=="sign"){
+    R_store       <- array(NA, dim=c(bigK,bigK,1), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
+  }else{
+    R_store <- NULL
+  }
+  IRF_store     <- array(NA, dim=c(bigK,bigK,n.ahead+1,1), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
   imp_posterior <- array(NA, dim=c(bigK,n.ahead+1,shock.nr,Q))
   dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocknames,paste0("Q",quantiles*100))
   #------------------------------ start computing irfs  ---------------------------------------------------#
@@ -451,7 +458,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       Ginv <- Ginv_large[,,irep]
       Fmat <- adrop(F_large[,,,irep,drop=FALSE],drop=4)
       Smat <- S_large[,,irep]
-      imp.obj <- irf.fun(xdat=xdat,plag=plag,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist)
+      imp.obj <- irf.fun(xdat=xdat,plag=pmax,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist)
       if(verbose){
         if(ident=="sign"){
           if(!any(is.null(imp.obj$rot))){
@@ -464,29 +471,46 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       return(list(impl=imp.obj$impl,rot=imp.obj$rot,icounter=imp.obj$icounter))
     })
     for(irep in 1:thindraws){
-      IRF_store[,,,irep] <- imp.obj[[irep]]$impl
-      if(ident=="sign"){
-        R_store[,,irep] <- imp.obj[[irep]]$rot
-        counter[irep]   <- imp.obj[[irep]]$icounter
+      counter[irep] <- imp.obj[[1]]$icounter
+      if(imp.obj[[1]]$icounter == MaxTries){
+        imp.obj[[1]] <- NULL
+      }else{
+        IRF_store <- abind(IRF_store, imp.obj[[1]]$impl, along=4)
+        if(ident=="sign") R_store <- abind(R_store, imp.obj[[1]]$rot, along=3)
       }
     }
   }else
   { # cpp-version
     #--------------------------------------------------------------
     # adjust indexes due to different indexation (starting with zero in cpp)
-    shocklist_cpp<-shocklist; shocklist_cpp$shock.idx<-lapply(shocklist_cpp$shock.idx,function(l)l-1)
-    shocklist_cpp$shock.horz <- shocklist_cpp$shock.horz-1
-    shocklist_cpp$shock.order <- shocklist_cpp$shock.order-1
+    shocklist$shock.idx<-lapply(shocklist$shock.idx,function(l)l-1)
+    shocklist$shock.horz <- shocklist$shock.horz-1
+    shocklist$shock.order <- shocklist$shock.order-1
     # type
     type <- ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
     counter <- numeric(length=thindraws)
-    temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp,verbose=verbose)
-    for(irep in 1:thindraws){
-      IRF_store[,,,irep] <- temp$irf[[irep]]
-      R_store[,,irep] <- temp$rot[[irep]]
+    save_rot <- ifelse(ident=="sign",TRUE,FALSE)
+    # sourceCpp("./src/irf.cpp")
+    temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist,save_rot=save_rot,verbose=verbose)
+    IRF_store[,,,1] <- temp$irf[[1]]
+    if(ident=="sign") R_store[,,1] <- temp$rot[[1]]
+    counter[1] <- temp$counter[1,1]
+    temp$irf[[1]]<-NULL; temp$rot[[1]]<-NULL
+    for(irep in 2:thindraws){
       counter[irep] <- temp$counter[irep,1]
-      if(temp$counter[irep,1] == MaxTries) IRF_store[,,,irep] <- NA_real_
+      if(temp$counter[irep,1] == MaxTries){
+        temp$irf[[1]] <- NULL; temp$rot[[1]] <- NULL
+      }else{
+        IRF_store <- abind(IRF_store, temp$irf[[1]], along=4)
+        if(ident=="sign") R_store   <- abind(R_store, temp$rot[[1]], along=3)
+        temp$irf[[1]] <- NULL; temp$rot[[1]] <- NULL
+      }
     }
+    rm(temp)
+    # transform back to R-version
+    shocklist$shock.idx<-lapply(shocklist$shock.idx,function(l)l+1)
+    shocklist$shock.horz <- shocklist$shock.horz+1
+    shocklist$shock.order <- shocklist$shock.order+1
   }
   end.comp <- Sys.time()
   diff.comp <- difftime(end.comp,start.comp,units="mins")
@@ -496,15 +520,15 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   # re-set IRF object in case we have found only a few rotation matrices
   if(ident=="sign")
   {
-    idx<-which(!is.na(apply(IRF_store,4,sum)))
+    idx <- which(counter!=MaxTries)
     rot.nr<-paste("For ", length(idx), " draws out of ", thindraws, " draws, a rotation matrix has been found.")
     if(length(idx)==0){
       stop("No rotation matrix found with imposed sign restrictions. Please respecify.")
     }
     if(verbose) cat(rot.nr)
     # subset posterior draws
-    IRF_store <- IRF_store[,,,idx,drop=FALSE]
-    R_store   <- R_store[,,idx,drop=FALSE]
+    #IRF_store <- IRF_store[,,,idx,drop=FALSE]
+    #R_store   <- R_store[,,idx,drop=FALSE]
     Ginv_large<-Ginv_large[,,idx,drop=FALSE]
     A_large   <- A_large[,,idx,drop=FALSE]
     S_large   <- S_large[,,idx,drop=FALSE]
@@ -547,7 +571,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   Sigma_u <- Ginv%*%Smat%*%t(Ginv)
   if(ident=="sign")
   {
-    imp.obj    <- try(irf.fun(xdat=xdat,plag=plag,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist),silent=TRUE)
+    imp.obj    <- try(irf.fun(xdat=xdat,plag=pmax,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist),silent=TRUE)
     if(!is(imp.obj,"try-error")){
       Rmed<-imp.obj$rot
     }else{
@@ -555,7 +579,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     }
   }
   struc.obj <- list(A=A,Fmat=Fmat,Ginv=Ginv,Smat=Smat,Rmed=Rmed)
-  model.obj <- list(xglobal=xglobal,plag=plag)
+  model.obj <- list(xglobal=xglobal,lags=lags)
   #--------------------------------- prepare output----------------------------------------------------------------------#
   out <- structure(list("posterior"   = imp_posterior,
                         "ident"       = ident,
@@ -657,8 +681,11 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
   if(is.null(restriction) || is.null(sign)){
     stop("Please specify 'restriction' together with 'sign'.")
   }
-  if(length(restriction)!=length(sign) || length(restriction)!=length(horizon) || length(sign)!=length(horizon)){
-    if(length(horizon)!=1) stop("Please provide the arguments 'restriction' and 'sign' with equal length. Please respecify.")
+  if(length(restriction)!=length(sign)){
+    stop("Please provide the arguments 'restriction' and 'sign' with equal length. Please respecify.")
+  }
+  if(length(restriction)!=length(horizon)){
+    if(length(horizon)!=1) stop("Please provide the argument 'horizon' either with length equal to one for all shocks or with an equal length of the restrictions.")
   }
   nr <- length(sign)
   if(!(is.null(restriction) && is.null(sign)) && is.null(horizon)){

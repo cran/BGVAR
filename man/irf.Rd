@@ -40,7 +40,7 @@ Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
 }}
 \item{\code{model.obj}}{ List object that contains model-specific information, in particular\itemize{
 \item{\code{xglobal}}{ Data of the model.}
-\item{\code{plag}}{ Lag specification of the model.}
+\item{\code{lags}}{ Lag specification of the model.}
 }}
 \item{\code{IRF_store}}{ Four-dimensional array (K times n.ahead times number of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.store=TRUE}.}
 \item{\code{R_store}}{ Three-dimensional array (K times K times draws) which stores all rotation matrices. Exists only if \code{save.store=TRUE}.}
@@ -69,6 +69,7 @@ shockinfo<-get_shockinfo("chol")
 shockinfo$shock<-"US.stir"; shockinfo$scale<--100
 
 irf.chol.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+
 # sign restrictions
 shockinfo <- get_shockinfo("sign")
 shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 

@@ -32,13 +32,14 @@
 #' }
 #' @importFrom stats cor
 avg.pair.cc=function(object, digits=3){
-  if(class(object)=="bgvar"){
-    plag <- object$args$plag
-    dat  <- object$xglobal[-c(1:plag),]
+  if(inherits(object, "bgvar")){
+    lags <- object$args$lags
+    pmax <- max(lags)
+    dat  <- object$xglobal[-c(1:pmax),]
     res  <- do.call("cbind",object$cc.results$res)
     res  <- res[,colnames(dat)] 
   }
-  if(class(object)=="bgvar.resid"){
+  if(inherits(object, "bgvar.resid")){
     dat    <- object$Data
     res    <- apply(object$country,c(2,3),mean)  
     res.g  <- apply(object$global,c(2,3),mean) 
@@ -60,7 +61,7 @@ avg.pair.cc=function(object, digits=3){
   rownames(datL)<-rownames(resL)<-rownames(resL.g)<-cN
   colnames(datL)<-colnames(resL)<-colnames(resL.g)<-names(idx)
   
-  if(class(object)=="bgvar"){
+  if(inherits(object,"bgvar")){
     for(i in 1:length(idx)){
       aux.dat <- cor(dat[,idx[[i]]])
       aux.res <- cor(res[,idx[[i]]])
@@ -72,7 +73,7 @@ avg.pair.cc=function(object, digits=3){
       resL[ii,i]<-aux.res
     }
   }
-  if(class(object)=="bgvar.resid"){  # include analysis based on residuals of the global model as well
+  if(inherits(object,"bgvar.resid")){  # include analysis based on residuals of the global model as well
     for(i in 1:length(idx)){
       aux.dat <- cor(dat[,idx[[i]]])
       aux.res <- cor(res[,idx[[i]]])
@@ -232,8 +233,9 @@ resid.corr.test=function(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3){
   # get data and arguments - note each second column of V has sign switched -> does not impact on results of F test so keep it as it is
   xglobal  <- obj$xglobal    
   res      <- obj$cc.results$res
-  plag     <- obj$args$plag
-  bigT     <- nrow(xglobal)-plag
+  lags     <- obj$args$lags
+  pmax     <- max(lags)
+  bigT     <- nrow(xglobal)-pmax
   pidx     <- 1:lag.cor
   varNames <- colnames(xglobal)
   cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
@@ -248,8 +250,8 @@ resid.corr.test=function(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3){
   # Calculate F-Statistic in a loop
   Fstat<-critL<-pL<-dofL<-list() # list objects since not for every country some nr. of regressors
   for(cc in 1:length(cN)){
-    idx   <- grep(paste(cN[cc],".",sep=""),varNames) 
-    X.dat <- xglobal[-c(1:plag),idx,drop=FALSE]
+    idx   <- grep(paste("^",cN[cc],".",sep=""),varNames) 
+    X.dat <- xglobal[-c(1:pmax),idx,drop=FALSE]
     r.dat <- res[[cN[cc]]]
     ki    <- ncol(X.dat)
     dof   <- (bigT-ki-lag.cor)
