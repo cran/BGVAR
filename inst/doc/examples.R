@@ -4,7 +4,7 @@ knitr::opts_chunk$set(error = TRUE)
 
 ## ----hide=TRUE----------------------------------------------------------------
 oldpar <- par(no.readonly=TRUE)
-set.seed(1)
+set.seed(123)
 library(BGVAR)
 
 ## ----"eerData"----------------------------------------------------------------
@@ -330,7 +330,7 @@ W<-W[EA_countries,EA_countries]
 W<-apply(W,2,function(x)x/rowSums(W))
 OE.weights$EB$weights <- OE.weights$EB$weights[names(OE.weights$EB$weights)%in%EA_countries]
 
-## ----"ea.estimate"------------------------------------------------------------
+## ----"ea.estimate", results="hide"--------------------------------------------
 # estimates the model
 model.ssvs<-bgvar(Data=monthlyData,
                   W=W,
