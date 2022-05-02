@@ -1,6 +1,6 @@
-bef174ae9f91b213487fa264209b9f1e *DESCRIPTION
+8dd094fa61187006b7472bab3e3054f2 *DESCRIPTION
 b70fde700d620c40fcce4863ae10ad8c *NAMESPACE
-3389223365bd67a4a2869f79adfd4498 *NEWS
+20ca802cef19fb0aa22b23add3ab434e *NEWS
 fbaf40484c051f4e91d756868106a8a1 *R/BGVAR.R
 eeed906bbb66dc894623190f2a6990e3 *R/RcppExports.R
 9dd5b6ed1f0f29117d868477b58a9a61 *R/bgvar-package.R
@@ -16,12 +16,12 @@ b3ae086119133413840e588956a788c8 *README.md
 935ae1b4497edd6e9b68ab95ad0ff1f4 *build/vignette.rds
 f5716dea127c52e28d9f877965f7f63e *data/eerData.rda
 a66e6733a0e2f2876db6b2d5056c9ab6 *data/monthlyData.rda
-2d2b911d7b4778ffea898196845b976f *data/pesaranData.rda
+961ea27ebb331e85259300b1e8db6c14 *data/pesaranData.rda
 da7911e9b701523212bc94be903ac4ab *data/testdata.rda
 c3faeb4ec581c68e6894c4c513a12227 *inst/CITATION
 4df8a7d3be5fda14aa4d074d1be95795 *inst/doc/examples.R
 cd86c721805174a4d14b9c5ed9858212 *inst/doc/examples.Rmd
-8c3b427c272f70ccf04b1eaac5f2053d *inst/doc/examples.html
+7f9af86262771e9fda03656f166724fb *inst/doc/examples.html
 a30253ab52c0de49c3d6842615e3c88e *inst/include/BGVAR.h
 624ca98e5855db2005e1fabe462f39be *inst/include/BGVAR_RcppExports.h
 bfd55ce4633e0a101883faa8aa7aba41 *man/BGVAR-package.Rd
