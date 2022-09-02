@@ -188,10 +188,10 @@ aux3<-model.ssvs.3$cc.results$PIP$PIP.avg;aux3<-aux3[-nrow(aux3),1:6]
 aux4<-model.ssvs.4$cc.results$PIP$PIP.avg;aux4<-aux4[-nrow(aux4),1:6]
 
 ## ----"heat1", fig.show="hold",out.width="25%",fig.cap="Heatmaps of PIPs."-----
-heatmap(aux1,Rowv=NA,Colv=NA, main="Model 1")
-heatmap(aux2,Rowv=NA,Colv=NA, main="Model 2")
-heatmap(aux3,Rowv=NA,Colv=NA, main="Model 3")
-heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4")
+heatmap(aux1,Rowv=NA,Colv=NA, main="Model 1", cex.main=2, cex.axis=1.7)
+heatmap(aux2,Rowv=NA,Colv=NA, main="Model 2", cex.main=2, cex.axis=1.7)
+heatmap(aux3,Rowv=NA,Colv=NA, main="Model 3", cex.main=2, cex.axis=1.7)
+heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4", cex.main=2, cex.axis=1.7)
 
 ## ---- "shocks", results="hide"------------------------------------------------
 irf.chol<-irf(model.ssvs.1, n.ahead=24, expert=list(save.store=FALSE))
@@ -299,8 +299,8 @@ irf.sign.zero<-irf(model.ssvs.eer, n.ahead=20, shockinfo=shockinfo,
 # US.stir between horizon 2 and 5
 matplot(cbind(irf.sign.zero$IRF_store["US.stir_t+4",1,,1],
               irf.sign.zero$IRF_store["US.stir",1,,1]),
-        type="l",ylab="",main="stir",lwd=2,xaxt="n");
-axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24))
+        type="l",ylab="",main="Short-term Interest Rate",lwd=2,xaxt="n", cex.main=2);
+axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24), cex.axis=1.7)
 legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
 segments(x0=2,y0=1,x1=5,y1=1,lwd=2,lty=3,col="grey")
 points(1,1,col="grey",pch=19,lwd=4)
@@ -309,8 +309,8 @@ abline(v=c(2,5),lty=3,col="grey",lwd=2)
 # of US.y in horizon 5
 matplot(cbind(irf.sign.zero$IRF_store["US.y_t+4",1,,1],
               irf.sign.zero$IRF_store["US.y",1,,1]),
-        type="l",ylab="",main="y",lwd=2,xaxt="n")
-axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24))
+        type="l",ylab="",main="Output",lwd=2,xaxt="n", cex.main=2)
+axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24), cex.axis=1.7)
 legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
 yy<-irf.sign.zero$IRF_store["US.y_t+4",1,1,1]
 segments(x0=1,y0=yy,x1=5,y1=yy,lwd=2,lty=3,col="grey");abline(v=c(1,5),col="grey",lty=3)
@@ -395,7 +395,7 @@ HD<-hd(irf.chol.us.mp)
 org.ts<-apply(HD$hd_array,c(1,2),sum) # this sums up the contributions of all shocks + constant, initial conditions and residual component (last three entries in the third dimension of the array)
 
 ## ---- "hd.plot",fig.cap="Historical decomposition of euro area GDP.",out.width="50%"----
-matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2)
+matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2, cex.axis=1.7)
 legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n",cex=2)
 
 ## ----"fcast.est", results="hide"----------------------------------------------
