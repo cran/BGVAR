@@ -1,4 +1,4 @@
-## ---- include=FALSE-----------------------------------------------------------
+## ----include=FALSE------------------------------------------------------------
 knitr::opts_chunk$set(fig.width = 12, fig.height=8, fig.align="default")
 knitr::opts_chunk$set(error = TRUE)
 
@@ -35,14 +35,14 @@ all(colnames(W.trade0012)==names(eerData))
 rowSums(W.trade0012)
 diag(W.trade0012)
 
-## ---- "eerDatasmall", hide=TRUE-----------------------------------------------
+## ----"eerDatasmall", hide=TRUE------------------------------------------------
 cN<-c("EA","US","RU")
 eerData<-eerData[cN]
 W.trade0012<-W.trade0012[cN,cN]
 W.trade0012<-apply(W.trade0012,2,function(x)x/rowSums(W.trade0012))
 W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
 
-## ---- "export excel", eval=FALSE----------------------------------------------
+## ----"export excel", eval=FALSE-----------------------------------------------
 #  time <- as.character(seq.Date(as.Date("1995-01-01"),as.Date("2013-10-01"),by="quarter"))
 #  
 #  for(cc in 1:length(eerData)){
@@ -52,10 +52,10 @@ W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,
 #               col.names=TRUE, row.names=TRUE, append=TRUE)
 #  }
 
-## ---- "import excel", eval=FALSE----------------------------------------------
+## ----"import excel", eval=FALSE-----------------------------------------------
 #  eerData_read <- excel_to_list(file = "./excel_eerData.xlsx", first_column_as_time=TRUE, skipsheet=NULL, ...)
 
-## ---- "transform to matrix", eval=FALSE---------------------------------------
+## ----"transform to matrix", eval=FALSE----------------------------------------
 #  eerData_matrix <- list_to_matrix(eerData_read)
 #  eerData_list <- matrix_to_list(eerData_matrix)
 
@@ -193,7 +193,7 @@ heatmap(aux2,Rowv=NA,Colv=NA, main="Model 2", cex.main=2, cex.axis=1.7)
 heatmap(aux3,Rowv=NA,Colv=NA, main="Model 3", cex.main=2, cex.axis=1.7)
 heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4", cex.main=2, cex.axis=1.7)
 
-## ---- "shocks", results="hide"------------------------------------------------
+## ----"shocks", results="hide"-------------------------------------------------
 irf.chol<-irf(model.ssvs.1, n.ahead=24, expert=list(save.store=FALSE))
 
 ## ----"us.mp", results="hide"--------------------------------------------------
@@ -206,20 +206,20 @@ shockinfo_girf<-get_shockinfo("girf")
 shockinfo_girf$shock<-"US.stir"
 shockinfo_girf$scale<--100
 
-## ---- "shockinfo"-------------------------------------------------------------
+## ----"shockinfo"--------------------------------------------------------------
 shockinfo_chol
 shockinfo_girf
 
-## ---- "us.mp.chol", results="hide"--------------------------------------------
+## ----"us.mp.chol", results="hide"---------------------------------------------
 irf.chol.us.mp<-irf(model.ssvs.1, n.ahead=24, shockinfo=shockinfo_chol, expert=list(save.store=TRUE))
 
-## ---- "us.mp2"----------------------------------------------------------------
+## ----"us.mp2"-----------------------------------------------------------------
 names(irf.chol.us.mp)
 
 ## ----"us.mp4", fig.margin=TRUE,out.width="80%",fig.cap="Responses of US country model"----
 plot(irf.chol.us.mp, resp="US", shock="US.stir")
 
-## ---- "us.gdp", results="hide"------------------------------------------------
+## ----"us.gdp", results="hide"-------------------------------------------------
 # cholesky
 shockinfo_chol       <- get_shockinfo("chol", nr_rows = 2)
 shockinfo_chol$shock <- c("US.stir","US.y")
@@ -233,13 +233,13 @@ irf.chol.us.y<-irf(model.ssvs.1, n.ahead=24, shockinfo=shockinfo_chol)
 # GIRF US GDP
 irf.girf.us.y<-irf(model.ssvs.1, n.ahead=24, shockinfo=shockinfo_girf)
 
-## ---- "us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%"----
+## ----"us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%"----
 plot(irf.chol.us.y, resp="US.y", shock="US.y")
 plot(irf.girf.us.y, resp="US.y", shock="US.y")
 plot(irf.chol.us.y, resp="US.rer", shock="US.y")
 plot(irf.girf.us.y, resp="US.rer", shock="US.y")
 
-## ---- "global.gdp",results="hide",out.width="50%"-----------------------------
+## ----"global.gdp",results="hide",out.width="50%"------------------------------
 shockinfo<-get_shockinfo("girf", nr_rows = 3)
 shockinfo$shock<-c("EA.y","US.y","RU.y")
 shockinfo$global<-TRUE
@@ -247,7 +247,7 @@ shockinfo$scale<--1
 irf.global<-irf(model.ssvs.1, n.ahead=24, shockinfo=shockinfo)
 plot(irf.global, resp=c("US.y","EA.y","RU.y"), shock="Global.y")
 
-## ---- hide=TRUE---------------------------------------------------------------
+## ----hide=TRUE----------------------------------------------------------------
 data("eerData")
 eerData<-eerData[cN]
 W.trade0012<-W.trade0012[cN,cN]
@@ -257,7 +257,7 @@ temp <- cbind(USexpectations, eerData$US)
 colnames(temp) <- c(colnames(USexpectations),colnames(eerData$US))
 eerData$US <- temp
 
-## ---- "us.spf", results="hide"------------------------------------------------
+## ----"us.spf", results="hide"-------------------------------------------------
 model.ssvs.eer<-bgvar(Data=eerData,
                       W=W.trade0012,
                       plag=1,
@@ -266,25 +266,25 @@ model.ssvs.eer<-bgvar(Data=eerData,
                       prior="SSVS",
                       SV=TRUE)
 
-## ---- "us.spf.sign.spec"------------------------------------------------------
+## ----"us.spf.sign.spec"-------------------------------------------------------
 shockinfo<-get_shockinfo("sign")
 shockinfo<-add_shockinfo(shockinfo, shock="US.y", 
                          restriction="US.Dp", sign=">", horizon=1, prob=1, scale=1)
 shockinfo<-add_shockinfo(shockinfo, shock="US.Dp",
                          restriction="US.y", sign="<", horizon=1, prob=1, scale=1)
 
-## ---- "us.spf.sign",message=FALSE, results="hide"-----------------------------
+## ----"us.spf.sign",message=FALSE, results="hide"------------------------------
 irf.sign<-irf(model.ssvs.eer, n.ahead=24, shockinfo=shockinfo, 
               expert=list(MaxTries=100, save.store=FALSE, cores=NULL))
 
-## ---- "us.spf.sign2"----------------------------------------------------------
+## ----"us.spf.sign2"-----------------------------------------------------------
 irf.sign$rot.nr
 
 ## ----"us.spf.plots",fig.cap="Responses to AS (upper panel) and AD (lower panel) shock.",fig.show="hold",out.width="50%"----
 plot(irf.sign, resp=c("US.y","US.Dp"), shock="US.y")
 plot(irf.sign, resp=c("US.y","US.Dp"), shock="US.Dp")
 
-## ---- "us.spf.sign3",results="hide"-------------------------------------------
+## ----"us.spf.sign3",results="hide"--------------------------------------------
 shockinfo<-get_shockinfo("sign")
 shockinfo<-add_shockinfo(shockinfo, shock="US.stir_t+4",
                          restriction=c("US.Dp_t+4","US.stir","US.y_t+4","US.stir_t+4","US.Dp_t+4","US.y_t+4"),
@@ -294,7 +294,7 @@ shockinfo<-add_shockinfo(shockinfo, shock="US.stir_t+4",
 irf.sign.zero<-irf(model.ssvs.eer, n.ahead=20, shockinfo=shockinfo, 
                    expert=list(MaxTries=100, save.store=TRUE))
 
-## ---- "eer.spf.plots",fig.cap="Rationality conditions I.",out.width="50%",fig.show="hold"----
+## ----"eer.spf.plots",fig.cap="Rationality conditions I.",out.width="50%",fig.show="hold"----
 # rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
 # US.stir between horizon 2 and 5
 matplot(cbind(irf.sign.zero$IRF_store["US.stir_t+4",1,,1],
@@ -316,7 +316,7 @@ yy<-irf.sign.zero$IRF_store["US.y_t+4",1,1,1]
 segments(x0=1,y0=yy,x1=5,y1=yy,lwd=2,lty=3,col="grey");abline(v=c(1,5),col="grey",lty=3)
 points(1,yy,col="grey",pch=19,lwd=4);points(5,yy,col="grey",pch=19,lwd=4)
 
-## ---- "ea.data"---------------------------------------------------------------
+## ----"ea.data"----------------------------------------------------------------
 data(monthlyData);monthlyData$OC<-NULL
 names(monthlyData)
 # list of weights of other entities with same name as additional country model
@@ -324,7 +324,7 @@ OE.weights = list(EB=EB.weights)
 EA_countries <- c("AT", "BE", "DE","ES", "FI","FR")
                   # "IE", "IT", "NL", "PT","GR","SK","MT","CY","EE","LT","LV")
 
-## ---- "restrict_sample", hide=TRUE--------------------------------------------
+## ----"restrict_sample", hide=TRUE---------------------------------------------
 monthlyData <- monthlyData[c(EA_countries,"EB")]
 W<-W[EA_countries,EA_countries]
 W<-apply(W,2,function(x)x/rowSums(W))
@@ -364,13 +364,13 @@ irf.sign.ssvs$posterior[paste0(EA_countries[-c(3,12)],".ltir"),1,1,"Q50"]
 irf.sign.ssvs$posterior[paste0(EA_countries,".ip"),1,1,"Q50"]
 irf.sign.ssvs$posterior[paste0(EA_countries,".p"),1,1,"Q50"]
 
-## ---- "ea.sign.plots",fig.show="hold",out.width="25%",fig.cap="Output responses of selected euro area countries."----
+## ----"ea.sign.plots",fig.show="hold",out.width="25%",fig.cap="Output responses of selected euro area countries."----
 plot(irf.sign.ssvs, resp=c("AT.ip"), shock="Global.ltir")
 plot(irf.sign.ssvs, resp=c("BE.ip"), shock="Global.ltir")
 plot(irf.sign.ssvs, resp=c("DE.ip"), shock="Global.ltir")
 plot(irf.sign.ssvs, resp=c("ES.ip"), shock="Global.ltir")
 
-## ---- "fevd"------------------------------------------------------------------
+## ----"fevd"-------------------------------------------------------------------
 #calculates the LN GFEVD 
 gfevd.us.mp=gfevd(model.ssvs.eer,n.ahead=24,running=TRUE,cores=4)$FEVD
 # get position of EA 
@@ -378,15 +378,15 @@ idx<-which(grepl("EA.",dimnames(gfevd.us.mp)[[2]]))
 own<-colSums(gfevd.us.mp["EA.y",idx,])
 foreign<-colSums(gfevd.us.mp["EA.y",-idx,])
 
-## ---- "fevd.plot",fig.cap="FEVD of EA GDP.",out.width="50%"-------------------
+## ----"fevd.plot",fig.cap="FEVD of EA GDP.",out.width="50%"--------------------
 barplot(t(cbind(own,foreign)),legend.text =c("own","foreign"))
 
-## ---- "fevd.struc"------------------------------------------------------------
+## ----"fevd.struc"-------------------------------------------------------------
 # calculates FEVD for variables US.y
 fevd.us.y=fevd(irf.chol.us.mp, var.slct=c("US.y"))$FEVD
 idx<-which(grepl("US.",rownames(fevd.us.y)))
 
-## ---- "fevd.struc.plot",fig.cap="FEVD of US GDP.",out.width="50%"-------------
+## ----"fevd.struc.plot",fig.cap="FEVD of US GDP.",out.width="50%"--------------
 barplot(fevd.us.y[idx,1,])
 
 ## ----"hd"---------------------------------------------------------------------
@@ -394,7 +394,7 @@ HD<-hd(irf.chol.us.mp)
 # summing them up should get you back the original time series
 org.ts<-apply(HD$hd_array,c(1,2),sum) # this sums up the contributions of all shocks + constant, initial conditions and residual component (last three entries in the third dimension of the array)
 
-## ---- "hd.plot",fig.cap="Historical decomposition of euro area GDP.",out.width="50%"----
+## ----"hd.plot",fig.cap="Historical decomposition of euro area GDP.",out.width="50%"----
 matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2, cex.axis=1.7)
 legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n",cex=2)
 
@@ -420,7 +420,7 @@ fcast <- predict(model.ssvs.h8, n.ahead=8, save.store=TRUE)
 lps.h8 <- lps(fcast)
 rmse.h8 <- rmse(fcast)
 
-## ---- "fcast.plot",fig.cap="Forecast plot.",out.width="50%"-------------------
+## ----"fcast.plot",fig.cap="Forecast plot.",out.width="50%"--------------------
 plot(fcast, resp="US.Dp", cut=8)
 
 ## ----"cond.predict",results="hide"--------------------------------------------
@@ -440,11 +440,11 @@ constr_sd[1:5,"US.Dp"] <- 0.001
 # compute conditional forecast with soft restrictions
 cond_fcast2 <- predict(model.ssvs.h8, n.ahead=8, constr=constr, constr_sd=constr_sd)
 
-## ---- "cond.plot.1",out.width="50%",fig.show="hold",fig.cap="Conditional forecast of US Inflation, top panel without uncertainty during the conditioning, bottom panel with uncertainty."----
+## ----"cond.plot.1",out.width="50%",fig.show="hold",fig.cap="Conditional forecast of US Inflation, top panel without uncertainty during the conditioning, bottom panel with uncertainty."----
 plot(cond_fcast, resp="US.Dp", cut=10)
 plot(cond_fcast2, resp="US.Dp", cut=10)
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  # load dataset
 #  data(eerData)
 #  # Minnesota prior and two different weight matrices and no SV
@@ -512,7 +512,7 @@ plot(cond_fcast2, resp="US.Dp", cut=10)
 #                  SV=TRUE,
 #                  expert=list(OE.weights=list(EB=EA.weights)))
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #    # First example, a US monetary policy shock, quarterly data
 #    library(BGVAR)
 #    data(eerData)
@@ -567,6 +567,6 @@ plot(cond_fcast2, resp="US.Dp", cut=10)
 #    irf.ratio <- irf(model.eer, n.ahead=20, shockinfo=shockinfo,
 #                     expert=list(MaxTries=10))
 
-## ---- hide=TRUE---------------------------------------------------------------
+## ----hide=TRUE----------------------------------------------------------------
 par(oldpar)
 
