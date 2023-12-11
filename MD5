@@ -1,13 +1,13 @@
-fc87dac61580f46d57cc32c71d17147d *DESCRIPTION
+fa45ca9188602256d3f0a23cfc16da76 *DESCRIPTION
 b70fde700d620c40fcce4863ae10ad8c *NAMESPACE
-8800f66850f68fad8dc02efa492ad097 *NEWS
+882cb7e9c7977655cfae2b354eafaa4e *NEWS
 6bceae6a05989817a41a250c65384d70 *R/BGVAR.R
 c6473b7287c4bf1586ce5cae037b1b1d *R/RcppExports.R
 58fbbf7413f08eb39e218f31cd1f8e8d *R/bgvar-package.R
-99eefccccc07d29cec860b5414e0d421 *R/fevd.R
+1ea4298230ec5a8928b5177103f173de *R/fevd.R
 30030459738384dc7248f5bdbaad8d1a *R/hd.R
 8a4512f547fd3af3ec4d1057f7ac9f7a *R/helpers.R
-ae0e7101498ccdf6d7f4b16aeb93e46c *R/irf.R
+bce1b15e2f4d246466600f4b58b7b64c *R/irf.R
 5e4470abdc108ddf360310db488a1d2b *R/plot.R
 b6ea9cc70b8b4b5deba18fd1c1b716c0 *R/predict.R
 fcc14acaca572d1696ed771c8bab75b1 *R/utils.R
@@ -21,7 +21,7 @@ da7911e9b701523212bc94be903ac4ab *data/testdata.rda
 0a2039337af53239716bae54101f43d8 *inst/CITATION
 6bb22c76f11a87b58d45a7fe98127b07 *inst/doc/examples.R
 8f8232b144721668528c9447e5d535c6 *inst/doc/examples.Rmd
-3283365a0f8377df1a2f2b87d7959987 *inst/doc/examples.html
+b0bbf1e262cba2d4f3d4f66a5ae56aed *inst/doc/examples.html
 a30253ab52c0de49c3d6842615e3c88e *inst/include/BGVAR.h
 624ca98e5855db2005e1fabe462f39be *inst/include/BGVAR_RcppExports.h
 bfd55ce4633e0a101883faa8aa7aba41 *man/BGVAR-package.Rd
