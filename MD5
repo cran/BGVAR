@@ -1,10 +1,10 @@
-fa45ca9188602256d3f0a23cfc16da76 *DESCRIPTION
+135c62f5d93e4ea80cc17577ffdbd167 *DESCRIPTION
 b70fde700d620c40fcce4863ae10ad8c *NAMESPACE
-882cb7e9c7977655cfae2b354eafaa4e *NEWS
+43e5a21bbcda9f08a22db37b5a042f49 *NEWS
 6bceae6a05989817a41a250c65384d70 *R/BGVAR.R
 c6473b7287c4bf1586ce5cae037b1b1d *R/RcppExports.R
 58fbbf7413f08eb39e218f31cd1f8e8d *R/bgvar-package.R
-1ea4298230ec5a8928b5177103f173de *R/fevd.R
+a2e3bae0a2a1ca465a8ba371c2384796 *R/fevd.R
 30030459738384dc7248f5bdbaad8d1a *R/hd.R
 8a4512f547fd3af3ec4d1057f7ac9f7a *R/helpers.R
 bce1b15e2f4d246466600f4b58b7b64c *R/irf.R
@@ -21,7 +21,7 @@ da7911e9b701523212bc94be903ac4ab *data/testdata.rda
 0a2039337af53239716bae54101f43d8 *inst/CITATION
 6bb22c76f11a87b58d45a7fe98127b07 *inst/doc/examples.R
 8f8232b144721668528c9447e5d535c6 *inst/doc/examples.Rmd
-b0bbf1e262cba2d4f3d4f66a5ae56aed *inst/doc/examples.html
+e6c0d6b5294e356572e3e7cec79bd8bb *inst/doc/examples.html
 a30253ab52c0de49c3d6842615e3c88e *inst/include/BGVAR.h
 624ca98e5855db2005e1fabe462f39be *inst/include/BGVAR_RcppExports.h
 bfd55ce4633e0a101883faa8aa7aba41 *man/BGVAR-package.Rd
@@ -33,7 +33,7 @@ ea5d1647b69bd8e73f00bae6e4f39c68 *man/conv.diag.Rd
 aced0c826986bafd49754c01b89ab2fb *man/dic.Rd
 271036316d2d56e2000300f3623943a0 *man/eerData.Rd
 644828ba35b475aa80966ab9f5f1eecf *man/excel_to_list.Rd
-faf42d34c9a788b77b14a6b929a4117e *man/fevd.Rd
+41ee2f2f9a6315fe0e85a3b4d781ebc0 *man/fevd.Rd
 52ed28dda7b28a569f2a49bbc1a684fd *man/fitted.Rd
 3ca9b28400d0c96dc1ee100b67f2084d *man/get_shockinfo.Rd
 f8523d11d056561882d96f6b750b2ccf *man/gfevd.Rd
