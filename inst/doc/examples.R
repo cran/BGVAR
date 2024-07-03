@@ -200,11 +200,11 @@ irf.chol<-irf(model.ssvs.1, n.ahead=24, expert=list(save.store=FALSE))
 # US monetary policy shock - Cholesky
 shockinfo_chol<-get_shockinfo("chol")
 shockinfo_chol$shock<-"US.stir"
-shockinfo_chol$scale<--100
+shockinfo_chol$scale<--1 # corresponds to 1 percentage point or 100bp
 # US monetary policy shock - GIRF
 shockinfo_girf<-get_shockinfo("girf")
 shockinfo_girf$shock<-"US.stir"
-shockinfo_girf$scale<--100
+shockinfo_girf$scale<--1 # corresponds to 1 percentage point or 100bp
 
 ## ----"shockinfo"--------------------------------------------------------------
 shockinfo_chol
