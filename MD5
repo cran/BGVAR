@@ -1,4 +1,4 @@
-4217a7e826ea71af80b943e9b04c219b *DESCRIPTION
+3d1f8318164a650f40f8bc9996bac998 *DESCRIPTION
 b70fde700d620c40fcce4863ae10ad8c *NAMESPACE
 e80e4903c044d0cc0123d0d37634a25e *NEWS
 6bceae6a05989817a41a250c65384d70 *R/BGVAR.R
@@ -21,7 +21,7 @@ da7911e9b701523212bc94be903ac4ab *data/testdata.rda
 0a2039337af53239716bae54101f43d8 *inst/CITATION
 0007ca718c0d8fac1b13b1f2fae6d338 *inst/doc/examples.R
 d7e920b6176b9dad45d23e631edd3bb2 *inst/doc/examples.Rmd
-5382114d033e3a12c929e231acb81a3c *inst/doc/examples.html
+d6d3c27553e200df32986c853d4649a6 *inst/doc/examples.html
 a30253ab52c0de49c3d6842615e3c88e *inst/include/BGVAR.h
 624ca98e5855db2005e1fabe462f39be *inst/include/BGVAR_RcppExports.h
 84b6aad079ef70b576dacf29a4b07658 *man/BGVAR-package.Rd
@@ -53,15 +53,15 @@ d12c4164cb0695996a2d086718d86a34 *man/rmse.Rd
 e22bf3ba7a24d0710ea0753c48200472 *man/summary.Rd
 41752ce937c2bad56b66821c9771ebf5 *man/testdata.Rd
 029c2b6597b5e17c91f928f664f6cb80 *man/vcov.Rd
-ad58c2625e39d5f8c70de4a819d840c8 *src/BVAR_linear.cpp
+6d380869c36d2d83f1cbc953b50bf7b4 *src/BVAR_linear.cpp
 0131886aa3366353c0b9f486209f25dc *src/Makevars
 92d69460a12a75c4e0e152466ed5d301 *src/Makevars.win
 4155f0fb2ce0a9187a38dc82efc615b9 *src/RcppExports.cpp
 524444df7762555eed955960e8cbb707 *src/do_rgig1.cpp
 20b3949a703ffc4bf76427aa8e3dd82e *src/do_rgig1.h
 b7a6d956d82d209b99b67b1c7f430325 *src/gvar_stacking.cpp
-00bf762e4c907d31a051eb5887d258e8 *src/helper.cpp
-511d30ae9973d72cefc875d450b9ebc6 *src/helper.h
+107d7a3d38798ccc6b38d2e0ff9ce01d *src/helper.cpp
+ca6214499f4c7b82f414a44324386ce5 *src/helper.h
 f330f6a29bb4b3315c97aeda8d0ee533 *src/irf.cpp
 4de6554d5208110c772a8cf231d87784 *tests/testthat.R
 d41d8cd98f00b204e9800998ecf8427e *tests/testthat/test-BGVAR.R
