@@ -88,10 +88,10 @@ List BVAR_linear(arma::mat Yraw,
   // HYPERPARAMETERS
   //----------------------------------------------------------------------------------------------------------------------
   // prior == 1: SIMS
-  double shrink1 = hyperparam["shrink1"];
-  double shrink2 = hyperparam["shrink2"];
-  double shrink3 = hyperparam["shrink3"];
-  double shrink4= hyperparam["shrink4"];
+  double lambda1 = hyperparam["lambda1"];
+  double lambda2 = hyperparam["lambda2"];
+  double lambda3 = hyperparam["lambda3"];
+  double lambda4 = hyperparam["lambda4"];
   // prior == 2: SSVS
   const double tau00 = hyperparam["tau0"];
   const double tau11 = hyperparam["tau1"];
@@ -155,8 +155,8 @@ List BVAR_linear(arma::mat Yraw,
   mat V_prior(k,M); V_prior.fill(10);
   
   // SIMS stuff
-  double accept1 = 0, accept2 = 0, accept4 = 0;
-  double scale1 = 0.43, scale2 = 0.43, scale4 = 0.43;
+  double accept1 = 0, accept2 = 0, accept3 = 0;
+  double scale1 = 0.43, scale2 = 0.43, scale3 = 0.43;
   vec sigmas(M+Mstar, fill::zeros);
   for(int i=0; i < M; i++){
     mat Y_ = Yraw.col(i);
@@ -166,22 +166,22 @@ List BVAR_linear(arma::mat Yraw,
     mat W_ = Wraw.col(i);
     sigmas(M+i) = get_ar(W_,plagstar);
   }
-  if(prior==1) get_Vminnesota(V_prior, sigmas, shrink1, shrink2, shrink3, shrink4, cons, Mstar, plag, plagstar, trend);
+  if(prior==1) get_Vminnesota(V_prior, sigmas, lambda1, lambda2, lambda3, lambda4, cons, Mstar, plag, plagstar, trend);
   
   // initialize stuff for MN prior
-  mat V_prop1(k,M), V_prop2(k,M), V_prop4(k,M); 
-  double shrink_prop1, shrink_prop2, shrink_prop4;
-  double post_old1=0.0, post_prop1=0.0, post_old2=0.0, post_prop2=0.0, post_old4=0.0, post_prop4=0.0;
+  mat V_prop1(k,M), V_prop2(k,M), V_prop3(k,M); 
+  double lambda_prop1, lambda_prop2, lambda_prop3;
+  double post_old1=0.0, post_prop1=0.0, post_old2=0.0, post_prop2=0.0, post_old3=0.0, post_prop3=0.0;
   for(int i=0; i<k; i++){
     for(int j=0; j<M; j++){
-      post_old1 = post_old1 + R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prior(i,j)),true);
-      post_old2 = post_old2 + R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prior(i,j)),true);
-      post_old4 = post_old4 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prior(i,j)), true);
+      post_old1 = post_old1 + R::dnorm(A_draw(i,j),A_prior(i,j),  std::sqrt(V_prior(i,j)),true);
+      post_old2 = post_old2 + R::dnorm(A_draw(i,j),A_prior(i,j),  std::sqrt(V_prior(i,j)),true);
+      post_old3 = post_old3 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prior(i,j)), true);
     }
   }
-  post_old1 = post_old1 + R::dgamma(shrink1,0.01,1/0.01,true) + log(shrink1); // add prior - shape scale parameterization!!!! + correction term
-  post_old2 = post_old2 + R::dgamma(shrink2,0.01,1/0.01,true) + log(shrink2); // add prior - shape scale parameterization!!!! + correction term
-  post_old4 = post_old4 + R::dgamma(shrink4,0.01,1/0.01,true) + log(shrink4); // add prior - shape scale parameterization!!!! + correction term
+  post_old1 = post_old1 + R::dgamma(lambda1,0.01,1/0.01,true) + log(lambda1); // add prior - shape scale parameterization!!!! + correction term
+  post_old2 = post_old2 + R::dgamma(lambda2,0.01,1/0.01,true) + log(lambda2); // add prior - shape scale parameterization!!!! + correction term
+  post_old3 = post_old3 + R::dgamma(lambda3,0.01,1/0.01,true) + log(lambda4); // add prior - shape scale parameterization!!!! + correction term
   
   // SSVS stuff
   mat gamma(k,M, fill::ones);
@@ -295,7 +295,7 @@ List BVAR_linear(arma::mat Yraw,
   if(save_shrink_MN == true){
     size_of_cube2 = {3, 1, thindraws};
   }
-  arma::cube shrink_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
+  arma::cube lambda_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
   // SSVS
   size_of_cube1 = {0, 0, 0};
   size_of_cube2 = {0, 0, 0};
@@ -486,8 +486,8 @@ List BVAR_linear(arma::mat Yraw,
     // SIMS
     if(prior == 1){
       // first shrinkage parameter (own lags)
-      shrink_prop1 = exp(R::rnorm(0,scale1))*shrink1;
-      get_Vminnesota(V_prop1, sigmas, shrink_prop1, shrink2, shrink3, shrink4, cons, Mstar, plag, plagstar, trend);
+      lambda_prop1 = exp(R::rnorm(0,scale1))*lambda1;
+      get_Vminnesota(V_prop1, sigmas, lambda_prop1, lambda2, lambda3, lambda4, cons, Mstar, plag, plagstar, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
@@ -495,17 +495,17 @@ List BVAR_linear(arma::mat Yraw,
         }
       }
       // total likelihood 
-      post_prop1 = post_prop1 + R::dgamma(shrink_prop1,0.01,1/0.01,true) + log(shrink_prop1);  // add prior - shape scale parameterization!!!! + correction term
+      post_prop1 = post_prop1 + R::dgamma(lambda_prop1,0.01,1/0.01,true) + log(lambda_prop1);  // add prior - shape scale parameterization!!!! + correction term
       if((post_prop1-post_old1) > log(R::runif(0,1))){
-        shrink1 = shrink_prop1;
+        lambda1 = lambda_prop1;
         V_prior = V_prop1;
         post_old1 = post_prop1;
         accept1 += 1;
       }
       
       // second shrinkage parameter (cross equations)
-      shrink_prop2 = exp(R::rnorm(0,scale2))*shrink2;
-      get_Vminnesota(V_prop2, sigmas, shrink1, shrink_prop2, shrink3, shrink4, cons, Mstar, plag, plagstar, trend);
+      lambda_prop2 = exp(R::rnorm(0,scale2))*lambda2;
+      get_Vminnesota(V_prop2, sigmas, lambda1, lambda_prop2, lambda3, lambda4, cons, Mstar, plag, plagstar, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
@@ -513,30 +513,30 @@ List BVAR_linear(arma::mat Yraw,
         }
       }
       // total likelihood 
-      post_prop2 = post_prop2 + R::dgamma(shrink_prop2,0.01,1/0.01,true) + log(shrink_prop2);  // add prior - shape scale parameterization!!!! + correction term
+      post_prop2 = post_prop2 + R::dgamma(lambda_prop2,0.01,1/0.01,true) + log(lambda_prop2);  // add prior - shape scale parameterization!!!! + correction term
       if((post_prop2-post_old2) > log(R::runif(0,1))){
-        shrink2 = shrink_prop2;
+        lambda2 = lambda_prop2;
         V_prior = V_prop2;
         post_old2 = post_prop2; 
         accept2 += 1;
       }
       
-      // fourth shrinkage parameter (weakly exogenous)
-      shrink_prop4 = exp(R::rnorm(0,scale4))*shrink4;
-      get_Vminnesota(V_prop4, sigmas, shrink1, shrink2, shrink3, shrink_prop4, cons, Mstar, plag, plagstar, trend);
+      // third shrinkage parameter (weakly exogenous)
+      lambda_prop3 = exp(R::rnorm(0,scale3))*lambda3;
+      get_Vminnesota(V_prop3, sigmas, lambda1, lambda2, lambda3, lambda_prop3, cons, Mstar, plag, plagstar, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
-          post_prop4 = post_prop4 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop4(i,j)), true);
+          post_prop3 = post_prop3 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop3(i,j)), true);
         }
       }
       // total likelihood 
-      post_prop4 = post_prop4 + R::dgamma(shrink_prop4,0.01,1/0.01,true) + log(shrink_prop4);  // add prior - shape scale parameterization!!!! + correction term
-      if((post_prop4-post_old4) > log(R::runif(0,1))){
-        shrink4 = shrink_prop4;
-        V_prior = V_prop4;
-        post_old4 = post_prop4;
-        accept4 += 1;
+      post_prop3 = post_prop3 + R::dgamma(lambda_prop3,0.01,1/0.01,true) + log(lambda_prop3);  // add prior - shape scale parameterization!!!! + correction term
+      if((post_prop3-post_old3) > log(R::runif(0,1))){
+        lambda3 = lambda_prop3;
+        V_prior = V_prop3;
+        post_old3 = post_prop3;
+        accept3 += 1;
       }
       
       if((irep+1) < 0.5*burnin){
@@ -544,8 +544,8 @@ List BVAR_linear(arma::mat Yraw,
         if(accept1/(irep+1) < 0.15){scale1 *= 0.99;}
         if(accept2/(irep+1) > 0.30){scale2 *= 1.01;}
         if(accept2/(irep+1) < 0.15){scale2 *= 0.99;}
-        if(accept4/(irep+1) > 0.30){scale4 *= 1.01;}
-        if(accept4/(irep+1) < 0.15){scale4 *= 0.99;}
+        if(accept3/(irep+1) > 0.30){scale3 *= 1.01;}
+        if(accept3/(irep+1) < 0.15){scale3 *= 0.99;}
       }  
     }
     // SSVS
@@ -592,7 +592,7 @@ List BVAR_linear(arma::mat Yraw,
           prodlambda = as_scalar(prod(lambda2_A.submat(0,1,pp-1,1)));
         }
         dl = d_lambda + A_tau(pp,1)*M*Mstar;
-        el = e_lambda + 0.5*A_tau(pp,1)*accu(V_exo)*prodlambda;
+        el = e_lambda + 0.5*A_tau(pp,1)*arma::accu(V_exo)*prodlambda;
         lambda2_A(pp,1) = R::rgamma(dl, 1/el);
         
         // sample theta
@@ -645,7 +645,7 @@ List BVAR_linear(arma::mat Yraw,
           prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp,0)));
         }
         dl = d_lambda + A_tau(pp+1,0)*std::pow(M,2);
-        el = e_lambda + 0.5*A_tau(pp+1,0)*accu(V_end)*prodlambda;
+        el = e_lambda + 0.5*A_tau(pp+1,0)*arma::accu(V_end)*prodlambda;
         lambda2_A(pp+1,0) = R::rgamma(dl, 1/el);
         
         // sample theta
@@ -692,7 +692,7 @@ List BVAR_linear(arma::mat Yraw,
       
       // sample lambda
       dl = d_lambda + L_tau*v;
-      el = e_lambda + 0.5*L_tau*accu(L_vec);
+      el = e_lambda + 0.5*L_tau*arma::accu(L_vec);
       lambda2_L = R::rgamma(dl, 1/el);
       
       // sample theta
@@ -813,9 +813,9 @@ List BVAR_linear(arma::mat Yraw,
           pars_store.slice((irep-burnin)/thin) = Sv_para;
         }
         if(save_shrink_MN == true){
-         shrink_store(0,0,(irep-burnin)/thin) = shrink1;
-         shrink_store(1,0,(irep-burnin)/thin) = shrink2;
-         shrink_store(2,0,(irep-burnin)/thin) = shrink4;
+         lambda_store(0,0,(irep-burnin)/thin) = lambda1;
+         lambda_store(1,0,(irep-burnin)/thin) = lambda2;
+         lambda_store(2,0,(irep-burnin)/thin) = lambda3;
         }
         if(save_shrink_SSVS == true){
           gamma_store.slice((irep-burnin)/thin) = gamma;
@@ -857,7 +857,7 @@ List BVAR_linear(arma::mat Yraw,
                       Named("res_store") = res_store,
                       Named("pars_store") = pars_store, 
                       Named("MN") = List::create(
-                        Named("shrink_store") = shrink_store
+                        Named("lambda_store") = lambda_store
                       ),
                       Named("SSVS") = List::create(
                         Named("gamma_store") = gamma_store, 

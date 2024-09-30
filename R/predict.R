@@ -18,6 +18,7 @@
 #' \item{\code{hold.out}}{ if \code{h} is not set to zero, this contains the hold-out sample.}
 #' }
 #' @examples
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
 #' model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
@@ -36,6 +37,7 @@
 #' constr_sd[1:5,"US.Dp"] <- 0.001
 #' 
 #' fcast_cond <- predict(model.ssvs, n.ahead=8, constr=constr, constr_sd=constr_sd)
+#' }
 #' @references 
 #' Jarocinski, M. (2010) \emph{Conditional forecasts and uncertainty about forecasts revisions in vector autoregressions.} Economics Letters, Vol. 108(3), pp. 257-259.
 #' 
@@ -269,13 +271,15 @@ print.bgvar.pred <- function(x, ...){
 #' @param object An object of class \code{bgvar.predict}.
 #' @param ... Additional arguments.
 #' @return Returns an object of class \code{bgvar.lps}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
-#' @examples 
+#' @examples
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
 #' model.ssvs.eer<-bgvar(Data=testdata,W=W.test,draws=100,burnin=100,
 #'                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps <- lps(fcast)
+#' }
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @importFrom stats dnorm
 #' @export
@@ -309,12 +313,14 @@ lps.bgvar.pred <- function(object, ...){
 #' @param ... Additional arguments.
 #' @return Returns an object of class \code{bgvar.rmse}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 #' @examples
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
 #' model.ssvs.eer<-bgvar(Data=testdata,W=W.test,draws=100,burnin=100,
 #'                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse <- rmse(fcast)
+#' }
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @importFrom stats dnorm
 #' @export

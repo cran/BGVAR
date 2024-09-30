@@ -46,12 +46,13 @@
 #' 
 #' Pesaran, H.M. and Y. Shin (1998) \emph{Generalized impulse response analysis in linear multivariate models.} Economics Letters, Volume 58, Issue 1, p. 17-29.
 #' @examples
+#' \donttest{
 #' oldpar <- par(no.readonly = TRUE)
 #' # First example, a US monetary policy shock, quarterly data
 #' library(BGVAR)
 #' data(testdata)
 #' # US monetary policy shock
-#' model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100, 
+#' model.eer<-bgvar(Data=testdata, W=W.test, draws=50, burnin=50, 
 #'                  plag=1, prior="SSVS", eigen=TRUE)
 #'
 #' # generalized impulse responses
@@ -72,7 +73,6 @@
 #'                            sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
 #' irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 #' 
-#' \donttest{
 #' # sign restrictions
 #' shockinfo <- get_shockinfo("sign")
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 

@@ -19,12 +19,12 @@
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
 #' @seealso \code{\link{bgvar}}, \code{\link{irf}}
 #' @examples
-#' \dontshow{
+#' \donttest{
 #' set.seed(123)
 #' library(BGVAR)
 #' data(testdata)
 #' model.eer<-bgvar(Data=testdata,W=W.test,prior="MN",
-#'                  draws=200,burnin=50,plag=1,eigen=TRUE)
+#'                  draws=50,burnin=50,plag=1,eigen=TRUE)
 #'                       
 #' # US monetary policy shock
 #' shockinfo <- get_shockinfo("chol")
@@ -189,10 +189,10 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
 #' Lanne, M. and H. Nyberg (2016) \emph{Generalized Forecast Error Variance Decomposition for Linear and Nonlinear Multivariate Models.} Oxford Bulletin of Economics and Statistics, Vol. 78(4), pp. 595-603.
 #' @seealso \code{\link{bgvar}}.
 #' @examples 
-#' \dontshow{
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
-#' model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100,
+#' model.eer<-bgvar(Data=testdata, W=W.test, draws=50, burnin=50,
 #'                  plag=1, prior="SSVS", eigen=TRUE)
 #'                       
 #' GFEVD<-gfevd(model.eer, n.ahead=24)
