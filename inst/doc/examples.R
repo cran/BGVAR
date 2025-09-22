@@ -43,21 +43,21 @@ W.trade0012<-apply(W.trade0012,2,function(x)x/rowSums(W.trade0012))
 W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
 
 ## ----"export excel", eval=FALSE-----------------------------------------------
-#  time <- as.character(seq.Date(as.Date("1995-01-01"),as.Date("2013-10-01"),by="quarter"))
-#  
-#  for(cc in 1:length(eerData)){
-#    x <- coredata(eerData[[cc]])
-#    rownames(x) <- time
-#    write.xlsx(x = x, file="./excel_eerData.xlsx", sheetName = names(eerData)[cc],
-#               col.names=TRUE, row.names=TRUE, append=TRUE)
-#  }
+# time <- as.character(seq.Date(as.Date("1995-01-01"),as.Date("2013-10-01"),by="quarter"))
+# 
+# for(cc in 1:length(eerData)){
+#   x <- coredata(eerData[[cc]])
+#   rownames(x) <- time
+#   write.xlsx(x = x, file="./excel_eerData.xlsx", sheetName = names(eerData)[cc],
+#              col.names=TRUE, row.names=TRUE, append=TRUE)
+# }
 
 ## ----"import excel", eval=FALSE-----------------------------------------------
-#  eerData_read <- excel_to_list(file = "./excel_eerData.xlsx", first_column_as_time=TRUE, skipsheet=NULL, ...)
+# eerData_read <- excel_to_list(file = "./excel_eerData.xlsx", first_column_as_time=TRUE, skipsheet=NULL, ...)
 
 ## ----"transform to matrix", eval=FALSE----------------------------------------
-#  eerData_matrix <- list_to_matrix(eerData_read)
-#  eerData_list <- matrix_to_list(eerData_matrix)
+# eerData_matrix <- list_to_matrix(eerData_read)
+# eerData_list <- matrix_to_list(eerData_matrix)
 
 ## ----"model.1",results="hide"-------------------------------------------------
  model.1<-bgvar(Data=eerData,
@@ -445,127 +445,127 @@ plot(cond_fcast, resp="US.Dp", cut=10)
 plot(cond_fcast2, resp="US.Dp", cut=10)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  # load dataset
-#  data(eerData)
-#  # Minnesota prior and two different weight matrices and no SV
-#  # weights for first variable set tradeW.0012, for second finW0711
-#  variable.list      <- list()
-#  variable.list$real <- c("y","Dp","tb")
-#  variable.list$fin  <- c("stir","ltir","rer")
-#  Hyperparm.MN <- list(a_i = 0.01, # prior for the shape parameter of the IG
-#                       b_i = 0.01  # prior for the scale parameter of the IG
-#                       )
-#  model.MN<-bgvar(Data=eerData,
-#                    W=W.list[c("tradeW.0012","finW0711")],
-#                    draws=200,
-#                    burnin=200,
-#                    plag=1,
-#                    hyperpara=Hyperparm.MN,
-#                    prior="MN",
-#                    thin=1,
-#                    eigen=TRUE,
-#                    SV=TRUE,
-#                    expert=list(variable.list=variable.list))
-#  # SSVS prior
-#  Hyperparm.ssvs <- list(tau0   = 0.1,  # coefficients: prior variance for the spike
-#                                        # (tau0 << tau1)
-#                         tau1   = 3,    # coefficients: prior variance for the slab
-#                                        # (tau0 << tau1)
-#                         kappa0 = 0.1,  # covariances: prior variance for the spike
-#                                        # (kappa0 << kappa1)
-#                         kappa1 = 7,    # covariances: prior variance for the slab
-#                                        # (kappa0 << kappa1)
-#                         a_1    = 0.01, # prior for the shape parameter of the IG
-#                         b_1    = 0.01, # prior for the scale parameter of the IG
-#                         p_i    = 0.5,  # prior inclusion probability of coefficients
-#                         q_ij   = 0.5   # prior inclusion probability of covariances
-#                         )
-#  model.ssvs<-bgvar(Data=eerData,
-#                    W=W.trade0012,
-#                    draws=100,
-#                    burnin=100,
-#                    plag=1,
-#                    hyperpara=Hyperparm.ssvs,
-#                    prior="SSVS",
-#                    thin=1,
-#                    eigen=TRUE)
-#  # Normal Gamma prior
-#  data(monthlyData)
-#  monthlyData$OC<-NULL
-#  Hyperparm.ng<-list(d_lambda   = 1.5,  # coefficients: prior hyperparameter for the NG-prior
-#                     e_lambda   = 1,    # coefficients: prior hyperparameter for the NG-prior
-#                     prmean     = 0,    # prior mean for the first lag of the AR coefficients
-#                     a_1        = 0.01, # prior for the shape parameter of the IG
-#                     b_1        = 0.01, # prior for the scale parameter of the IG
-#                     tau_theta  = .6,   # (hyper-)parameter for the NG
-#                     sample_tau = FALSE # estimate a?
-#                     )
-#  model.ng<-bgvar(Data=monthlyData,
-#                  W=W,
-#                  draws=200,
-#                  burnin=100,
-#                  plag=1,
-#                  hyperpara=Hyperparm.ng,
-#                  prior="NG",
-#                  thin=2,
-#                  eigen=TRUE,
-#                  SV=TRUE,
-#                  expert=list(OE.weights=list(EB=EA.weights)))
+# # load dataset
+# data(eerData)
+# # Minnesota prior and two different weight matrices and no SV
+# # weights for first variable set tradeW.0012, for second finW0711
+# variable.list      <- list()
+# variable.list$real <- c("y","Dp","tb")
+# variable.list$fin  <- c("stir","ltir","rer")
+# Hyperparm.MN <- list(a_i = 0.01, # prior for the shape parameter of the IG
+#                      b_i = 0.01  # prior for the scale parameter of the IG
+#                      )
+# model.MN<-bgvar(Data=eerData,
+#                   W=W.list[c("tradeW.0012","finW0711")],
+#                   draws=200,
+#                   burnin=200,
+#                   plag=1,
+#                   hyperpara=Hyperparm.MN,
+#                   prior="MN",
+#                   thin=1,
+#                   eigen=TRUE,
+#                   SV=TRUE,
+#                   expert=list(variable.list=variable.list))
+# # SSVS prior
+# Hyperparm.ssvs <- list(tau0   = 0.1,  # coefficients: prior variance for the spike
+#                                       # (tau0 << tau1)
+#                        tau1   = 3,    # coefficients: prior variance for the slab
+#                                       # (tau0 << tau1)
+#                        kappa0 = 0.1,  # covariances: prior variance for the spike
+#                                       # (kappa0 << kappa1)
+#                        kappa1 = 7,    # covariances: prior variance for the slab
+#                                       # (kappa0 << kappa1)
+#                        a_1    = 0.01, # prior for the shape parameter of the IG
+#                        b_1    = 0.01, # prior for the scale parameter of the IG
+#                        p_i    = 0.5,  # prior inclusion probability of coefficients
+#                        q_ij   = 0.5   # prior inclusion probability of covariances
+#                        )
+# model.ssvs<-bgvar(Data=eerData,
+#                   W=W.trade0012,
+#                   draws=100,
+#                   burnin=100,
+#                   plag=1,
+#                   hyperpara=Hyperparm.ssvs,
+#                   prior="SSVS",
+#                   thin=1,
+#                   eigen=TRUE)
+# # Normal Gamma prior
+# data(monthlyData)
+# monthlyData$OC<-NULL
+# Hyperparm.ng<-list(d_lambda   = 1.5,  # coefficients: prior hyperparameter for the NG-prior
+#                    e_lambda   = 1,    # coefficients: prior hyperparameter for the NG-prior
+#                    prmean     = 0,    # prior mean for the first lag of the AR coefficients
+#                    a_1        = 0.01, # prior for the shape parameter of the IG
+#                    b_1        = 0.01, # prior for the scale parameter of the IG
+#                    tau_theta  = .6,   # (hyper-)parameter for the NG
+#                    sample_tau = FALSE # estimate a?
+#                    )
+# model.ng<-bgvar(Data=monthlyData,
+#                 W=W,
+#                 draws=200,
+#                 burnin=100,
+#                 plag=1,
+#                 hyperpara=Hyperparm.ng,
+#                 prior="NG",
+#                 thin=2,
+#                 eigen=TRUE,
+#                 SV=TRUE,
+#                 expert=list(OE.weights=list(EB=EA.weights)))
 
 ## ----eval=FALSE---------------------------------------------------------------
-#    # First example, a US monetary policy shock, quarterly data
-#    library(BGVAR)
-#    data(eerData)
-#    model.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
-#  
-#    # generalized impulse responses
-#    shockinfo<-get_shockinfo("girf")
-#    shockinfo$shock<-"US.stir"; shockinfo$scale<--100
-#  
-#    irf.girf.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
-#  
-#    # cholesky identification
-#    shockinfo<-get_shockinfo("chol")
-#    shockinfo$shock<-"US.stir"; shockinfo$scale<--100
-#  
-#    irf.chol.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
-#    # sign restrictions
-#    shockinfo <- get_shockinfo("sign")
-#    shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"),
-#                               sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
-#    irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
-#  
-#    # sign restrictions with relaxed cross-country restrictions
-#    shockinfo <- get_shockinfo("sign")
-#    # restriction for other countries holds to 75\%
-#    shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","EA.y","UK.y"),
-#                               sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
-#    shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
-#                               sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
-#    irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
-#  
-#    # Example with zero restriction (Arias et al., 2018) and
-#    # rationality conditions (D'Amico and King, 2017).
-#    data("eerDataspf")
-#    model.eer<-bgvar(Data=eerDataspf, W=W.trade0012.spf, draws=300, burnin=300,
-#                     plag=1, prior="SSVS", eigen=TRUE)
-#    shockinfo <- get_shockinfo("sign")
-#    shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4",
-#                               restriction=c("US.Dp_t+4","US.stir","US.y_t+4"),
-#                               sign=c("<","0","<"), horizon=1, prob=1, scale=1)
-#    # rationality condition: US.stir_t+4 on impact is equal to average of
-#    # IRF of US.stir between horizon 1 to 4
-#    shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.stir_t+4",
-#                               sign="ratio.avg", horizon=5, prob=1, scale=1)
-#    # rationality condition: US.Dp_t+4 on impact is equal to IRF of US.Dp at horizon 4
-#    shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.Dp_t+4",
-#                               sign="ratio.H", horizon=5, prob=1, scale=1)
-#    # rationality condition: US.y_t+4 on impact is equal to IRF of US.y at horizon 4
-#    shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.y_t+4",
-#                               sign="ratio.H", horizon=5, prob=1, scale=1)
-#    # regulate maximum number of tries with expert settings
-#    irf.ratio <- irf(model.eer, n.ahead=20, shockinfo=shockinfo,
-#                     expert=list(MaxTries=10))
+#   # First example, a US monetary policy shock, quarterly data
+#   library(BGVAR)
+#   data(eerData)
+#   model.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
+# 
+#   # generalized impulse responses
+#   shockinfo<-get_shockinfo("girf")
+#   shockinfo$shock<-"US.stir"; shockinfo$scale<--100
+# 
+#   irf.girf.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+# 
+#   # cholesky identification
+#   shockinfo<-get_shockinfo("chol")
+#   shockinfo$shock<-"US.stir"; shockinfo$scale<--100
+# 
+#   irf.chol.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+#   # sign restrictions
+#   shockinfo <- get_shockinfo("sign")
+#   shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"),
+#                              sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
+#   irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+# 
+#   # sign restrictions with relaxed cross-country restrictions
+#   shockinfo <- get_shockinfo("sign")
+#   # restriction for other countries holds to 75\%
+#   shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","EA.y","UK.y"),
+#                              sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
+#   shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
+#                              sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
+#   irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+# 
+#   # Example with zero restriction (Arias et al., 2018) and
+#   # rationality conditions (D'Amico and King, 2017).
+#   data("eerDataspf")
+#   model.eer<-bgvar(Data=eerDataspf, W=W.trade0012.spf, draws=300, burnin=300,
+#                    plag=1, prior="SSVS", eigen=TRUE)
+#   shockinfo <- get_shockinfo("sign")
+#   shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4",
+#                              restriction=c("US.Dp_t+4","US.stir","US.y_t+4"),
+#                              sign=c("<","0","<"), horizon=1, prob=1, scale=1)
+#   # rationality condition: US.stir_t+4 on impact is equal to average of
+#   # IRF of US.stir between horizon 1 to 4
+#   shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.stir_t+4",
+#                              sign="ratio.avg", horizon=5, prob=1, scale=1)
+#   # rationality condition: US.Dp_t+4 on impact is equal to IRF of US.Dp at horizon 4
+#   shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.Dp_t+4",
+#                              sign="ratio.H", horizon=5, prob=1, scale=1)
+#   # rationality condition: US.y_t+4 on impact is equal to IRF of US.y at horizon 4
+#   shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.y_t+4",
+#                              sign="ratio.H", horizon=5, prob=1, scale=1)
+#   # regulate maximum number of tries with expert settings
+#   irf.ratio <- irf(model.eer, n.ahead=20, shockinfo=shockinfo,
+#                    expert=list(MaxTries=10))
 
 ## ----hide=TRUE----------------------------------------------------------------
 par(oldpar)
